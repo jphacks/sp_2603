@@ -32,7 +32,7 @@ DB は Cloudflare D1 (SQLite) で、スキーマは Drizzle で書きます。�
 
    - 真偽値は `integer("x", { mode: "boolean" })`、日時は `integer("x", { mode: "timestamp" })` を使う (SQLite には専用の型がない)。
    - カラム名は snake_case、TypeScript 側のプロパティ名は camelCase にする。
-   - 認証のテーブル (`auth-schema.ts`) は手で編集しない。Better Auth の設定を変えたら `pnpm --filter @sp-2603/api auth:generate` で再生成する。
+   - 認証のテーブル (`auth-schema.ts`) は手で編集しない。Better Auth の設定を変えたら `pnpm --filter @fllooat/api auth:generate` で再生成する。
 2. ルートで `pnpm db:generate` を実行する。`apps/api/drizzle/` に SQL が生成される。意図しない `DROP` がないか SQL を読んで確認する。
 3. `pnpm db:migrate:local` でローカル D1 に適用する。テストは同じマイグレーションを自動で適用する。
 4. API のレスポンスに出すなら `add-api-endpoint` の skill に従う。

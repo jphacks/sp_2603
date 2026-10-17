@@ -1,4 +1,4 @@
-import { generatedHandlers } from "@sp-2603/api-client/mocks";
+import { generatedHandlers } from "@fllooat/api-client/mocks";
 import { setupWorker } from "msw/browser";
 import { handlers } from "./handlers";
 

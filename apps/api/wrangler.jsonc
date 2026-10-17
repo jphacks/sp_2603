@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sp-2603",
+  "name": "fllooat",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-17",
   "compatibility_flags": ["nodejs_compat"],
@@ -25,7 +25,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "sp-2603-db",
+      "database_name": "fllooat-db",
       "migrations_dir": "drizzle"
     }
   ]

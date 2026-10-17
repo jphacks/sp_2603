@@ -12,13 +12,13 @@
 
 ## 構成
 
-pnpm workspaces のモノレポで、Cloudflare Workers にデプロイします。パッケージ名は `@sp-2603/<ディレクトリ名>` にします。
+pnpm workspaces のモノレポで、Cloudflare Workers にデプロイします。パッケージ名は `@fllooat/<ディレクトリ名>` にします。
 
 | パス | パッケージ | 内容 |
 | --- | --- | --- |
-| `apps/web` | `@sp-2603/web` | Vite + React 19 + TanStack Router (ファイルベース) + TanStack Query + Tailwind CSS v4 |
-| `apps/api` | `@sp-2603/api` | Hono + `@hono/zod-openapi` + Drizzle ORM + D1 + Better Auth。`/api/*` を処理する Worker |
-| `packages/api-client` | `@sp-2603/api-client` | Orval が `openapi.json` から生成した TanStack Query の hooks、型、MSW モック |
+| `apps/web` | `@fllooat/web` | Vite + React 19 + TanStack Router (ファイルベース) + TanStack Query + Tailwind CSS v4 |
+| `apps/api` | `@fllooat/api` | Hono + `@hono/zod-openapi` + Drizzle ORM + D1 + Better Auth。`/api/*` を処理する Worker |
+| `packages/api-client` | `@fllooat/api-client` | Orval が `openapi.json` から生成した TanStack Query の hooks、型、MSW モック |
 
 本番では 1 つの Worker が `/api/*` を Hono で処理し、それ以外は `apps/web/dist` を static assets として返します。同一オリジンなので CORS の設定は不要です。
 
@@ -32,7 +32,7 @@ API の型の正本は `apps/api/src/routes/*.ts` の zod スキーマです。
 zod スキーマ (apps/api) → pnpm gen → openapi.json → Orval → hooks + 型 + MSW モック (packages/api-client)
 ```
 
-- フロントから API を呼ぶときは、`@sp-2603/api-client` が生成した `useXxx` hooks を使う。`fetch` を直接書かない。2xx 以外の応答は `ApiError` として投げられ、`isError` になる。
+- フロントから API を呼ぶときは、`@fllooat/api-client` が生成した `useXxx` hooks を使う。`fetch` を直接書かない。2xx 以外の応答は `ApiError` として投げられ、`isError` になる。
 - API のスキーマを変えたら `pnpm gen` を実行し、生成物もいっしょにコミットする。フロント担当は API を起動しなくても `pnpm dev:mock` で開発を続けられる。
 - 生成物は手で編集しない: `packages/api-client/src/generated/**`、`packages/api-client/openapi.json`、`apps/web/src/routeTree.gen.ts`、`apps/api/worker-configuration.d.ts`、`apps/api/src/db/auth-schema.ts`、`apps/api/drizzle/**`
 
@@ -61,8 +61,8 @@ Better Auth で Google と GitHub のログインを提供します。初回ロ�
 | `pnpm build` | web のビルド |
 | `pnpm db:generate` | Drizzle のスキーマからマイグレーション SQL を生成する |
 | `pnpm db:migrate:local` | ローカル D1 にマイグレーションを適用する |
-| `pnpm --filter @sp-2603/api cf-typegen` | `wrangler.jsonc` を変えた後に `Env` 型を再生成する |
-| `pnpm --filter @sp-2603/api auth:generate` | Better Auth の設定を変えた後に認証テーブルのスキーマを再生成する |
+| `pnpm --filter @fllooat/api cf-typegen` | `wrangler.jsonc` を変えた後に `Env` 型を再生成する |
+| `pnpm --filter @fllooat/api auth:generate` | Better Auth の設定を変えた後に認証テーブルのスキーマを再生成する |
 
 API のドキュメントは http://localhost:5173/api/docs で見られます。
 

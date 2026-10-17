@@ -50,7 +50,7 @@ API の型の正本は `apps/api/src/routes/*.ts` の zod スキーマです。�
 
    - ログイン不要の API なら `...authRequired` と `...unauthorizedResponse` を外し、`OpenAPIHono<AppEnv>` にする (`routes/healthz.ts` が例)。
    - `operationId` は生成される hook の名前になる (`listTodos` → `useListTodos`)。`tags` は生成ファイルの分割単位になる。
-   - 再利用するスキーマには `.openapi("Name")` で名前を付ける。名前を付けると型が `@sp-2603/api-client` から export される。
+   - 再利用するスキーマには `.openapi("Name")` で名前を付ける。名前を付けると型が `@fllooat/api-client` から export される。
    - 返すステータスコードはすべて `responses` に書く。書いていないコードは型エラーになる。
    - DB の行はそのまま返さず、`Date` を ISO 文字列にするなどレスポンス用に変換する。
 2. `apps/api/src/app.ts` で `app.route("/", todoRoutes)` を追加する。
@@ -62,7 +62,7 @@ API の型の正本は `apps/api/src/routes/*.ts` の zod スキーマです。�
 ## フロントからの使い方
 
 ```tsx
-import { getListTodosQueryKey, useCreateTodo, useListTodos } from "@sp-2603/api-client";
+import { getListTodosQueryKey, useCreateTodo, useListTodos } from "@fllooat/api-client";
 
 const todos = useListTodos(); // 成功時のデータは todos.data?.data
 const createTodo = useCreateTodo({
