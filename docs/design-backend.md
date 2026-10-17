@@ -303,3 +303,39 @@ WHERE room_member.room_id <> excluded.room_id;
 | 誰もいなくなったルーム | 残す | ID は 100 万通りあり、ハッカソンの規模では枯渇しない |
 | 空の気球を揺らしたときの扱い | 最終更新だけを新しくする | 手が空いている人が「まだ暇」と伝えられるようにするため |
 | ポーリングの間隔 | 3 秒 | デモで動きがすぐ伝わり、D1 の読み取りも無料枠に収まる |
+
+## フロントからの相談と依頼
+
+フロントの設計 ([docs/design-frontend.md](design-frontend.md)) を進める中で出てきたものです。1 と 4 はスキーマとマイグレーションに関わるので、書き始める前に決めたいです。
+
+### 1. エラーの形を OpenAPI に載せてほしい (依頼)
+
+今の `packages/api-client/src/fetcher.ts` では、2xx 以外の応答の本文は `ApiError.body: unknown` として届きます。このままだと、フロントは `code` で分岐するたびに本文の形を自分で確かめる必要があります。
+
+エラーの形 `{ code, message, details }` を、`code` を enum にした zod スキーマとして各ルートの `responses` に載せてもらえると、Orval が型を生成します。`code` の打ち間違いも型チェックで見つかるようになります。
+
+### 2. モックで使う値の例を付けてほしい (相談)
+
+Orval が生成する MSW のモックは faker のランダムな値を返すので、`pnpm dev:mock` では次のようになります。
+
+- `GET /api/rooms/{roomId}` の `members` で、`isMe: true` の人が 0 人や 2 人になる。環状の並びが作れない
+- `roomId` が 6 桁の数字にならない
+- ポーリングのたびに全員の `busy` が変わり、気球が上下し続ける
+
+`GET /api/me` と `GET /api/rooms/{roomId}` のモックは、フロントが `apps/web/src/mocks/` に手書きで用意します。ほかの API は、zod に `.openapi({ example })` を付けてもらえると、モックの値が現実的になって助かります。必須ではありません。
+
+### 3. 更新系の API で、更新後の状態を返してほしい (相談)
+
+`POST /api/me/tasks/drop` は `{ "droppedCount": 2 }` だけを返します。揺らした直後に気球が浮き上がるのがデモの見せ場ですが、このままだと応答を受けてから取り直すまで、気球が浮くのが一拍遅れます。
+
+次の 3 つが、`GET /api/me/tasks` と同じ形 (`busy`、`remaining`、`tasks`) に `statusUpdatedAt` を足したものを返すと、フロントは取り直さずにその場で画面を更新できます。
+
+- `POST /api/me/tasks`
+- `POST /api/me/tasks/drop`
+- `POST /api/me/history/{taskId}/reload`
+
+フロントは応答を待たずに先に気球を動かし、失敗したら戻す作りにするので、この変更がなくても MVP は作れます。
+
+### 4. タイトルの長さの上限を DB の CHECK 制約に入れないでほしい (依頼)
+
+タイトルの上限は concept.md で未決のままです。SQLite では CHECK 制約をあとから変えるのにテーブルを作り直すマイグレーションが要るので、上限は API の zod だけで確かめ、DB の `title` には「空でない」ことだけを制約として付けてもらえると、後から変えやすくなります。フロントの入力欄も、上限は API に合わせます (今の案は 30 文字)。
