@@ -10,6 +10,7 @@
     "gen:openapi": "tsx scripts/gen-openapi.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:seed:local": "wrangler d1 execute DB --local --file seed/demo.sql",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "auth:generate": "auth generate --config auth.cli.ts --output src/db/auth-schema.ts --adapter drizzle --dialect sqlite -y",
     "test": "vitest run",
