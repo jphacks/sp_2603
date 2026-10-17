@@ -15,9 +15,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+      # バージョンは lockfile から読まれる。
       - uses: biomejs/setup-biome@v2
-        with:
-          version-file: package.json
       - run: biome ci .
 
   typecheck-build:
