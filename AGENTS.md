@@ -61,6 +61,7 @@ Better Auth で Google と GitHub のログインを提供します。初回ロ�
 | `pnpm build` | web のビルド |
 | `pnpm db:generate` | Drizzle のスキーマからマイグレーション SQL を生成する |
 | `pnpm db:migrate:local` | ローカル D1 にマイグレーションを適用する |
+| `pnpm db:seed:local` | ローカル D1 のルーム `123456` にデモ用のダミーメンバーを入れる |
 | `pnpm --filter @fllooat/api cf-typegen` | `wrangler.jsonc` を変えた後に `Env` 型を再生成する |
 | `pnpm --filter @fllooat/api auth:generate` | Better Auth の設定を変えた後に認証テーブルのスキーマを再生成する |
 

@@ -18,6 +18,7 @@
     "build": "pnpm --filter @fllooat/web build",
     "db:generate": "pnpm --filter @fllooat/api db:generate",
     "db:migrate:local": "pnpm --filter @fllooat/api db:migrate:local",
+    "db:seed:local": "pnpm --filter @fllooat/api db:seed:local",
     "db:migrate:remote": "pnpm --filter @fllooat/api db:migrate:remote",
     "cf:deploy": "pnpm build && pnpm --filter @fllooat/api run deploy",
     "test": "pnpm -r --if-present test"
