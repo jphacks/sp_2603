@@ -26,6 +26,10 @@
       "GITHUB_CLIENT_SECRET"
     ]
   },
+  // ルーム ID の総当たりを遅くするため、入室の回数をユーザーごとに制限する。
+  "ratelimits": [
+    { "name": "JOIN_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
