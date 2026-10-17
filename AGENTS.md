@@ -152,6 +152,14 @@ Cloudflare Workers Builds で、main への merge 時に自動でデプロイさ
 - ユーザーとの取り決め、以前の作業のメモ、チャットの引き継ぎなどは `.private/` に書く。チーム全体に関わることは、このファイルや docs に書く。
 - `.private/` の内容をコミット、PR、Issue に書き写さない。
 
+## サードパーティの素材とコード
+
+フォント、画像やアイコンなどの素材、他のプロジェクトや記事から引用したコードを取り込むときは、[docs/third-party-licenses.md](docs/third-party-licenses.md) の手順に従い、[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) に記録します。
+
+- ライセンスの記載がないもの、GPL など派生物にも同じライセンスを求めるものは使わない。
+- 引用したコードには、引用箇所の直前に出典 (URL とライセンス) をコメントで書く。
+- npm パッケージと `.claude/skills/` の skill は対象外。
+
 ## その他の注意
 
 - import には `@/` エイリアス (`apps/web/src`) を使う。
