@@ -1,0 +1,26 @@
+{
+  "name": "@sp-2603/api-client",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./mocks": "./src/mocks.ts"
+  },
+  "scripts": {
+    "gen": "orval --config orval.config.ts",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "^5.104.3",
+    "msw": "^3.0.3",
+    "orval": "^8.43.0",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^10.6.0"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.104.3",
+    "msw": "^3.0.3"
+  }
+}

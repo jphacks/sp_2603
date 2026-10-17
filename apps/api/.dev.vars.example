@@ -1,0 +1,11 @@
+# cp .dev.vars.example .dev.vars で作成する。.dev.vars はコミットしない。
+# 生成: pnpm --filter @sp-2603/api exec auth secret
+BETTER_AUTH_SECRET=
+# Vite のプロキシ経由でアクセスするので 5173 を指定する
+BETTER_AUTH_URL=http://localhost:5173
+
+# 空のままだとそのプロバイダのログインは無効になる (他の開発には影響しない)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=

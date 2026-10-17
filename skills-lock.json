@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "skills": {
+    "cf-cli": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cf-cli/SKILL.md",
+      "computedHash": "91da778590a135b120129c96f8f673e8005e8329d436cfb8787e70101d5a0dba"
+    },
+    "cloudflare": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cloudflare/SKILL.md",
+      "computedHash": "f08c8c1be96dfad7f9d5418b1345477dd2e55af58c8da01326c9a2616c7ed721"
+    },
+    "fix-unnatural-line-breaks": {
+      "source": "otnc/skills_fix-unnatural-line-breaks",
+      "sourceType": "github",
+      "skillPath": "skills/fix-unnatural-line-breaks/SKILL.md",
+      "computedHash": "f968f49f5b784d9bd6517434b7a7ed630473642c13bbd78b40cc07a609668325"
+    },
+    "hono": {
+      "source": "honojs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/hono/SKILL.md",
+      "computedHash": "f469bac28a53d010bb47bd61109d0cfebe9a4f3fd407310746114549886b5870"
+    },
+    "hush": {
+      "source": "ro80t/hush",
+      "sourceType": "github",
+      "skillPath": "skills/hush/SKILL.md",
+      "computedHash": "fb5b49a60ed691934fab9143c126c7c801b282352129246e844f8d16a5dd2674"
+    },
+    "hush-fix": {
+      "source": "ro80t/hush",
+      "sourceType": "github",
+      "skillPath": "skills/hush-fix/SKILL.md",
+      "computedHash": "c4fa82fdf1b5f3dfa38130c3ffd1b989af8d69e453ced9dd9a58da5d27286a51"
+    },
+    "hush-review": {
+      "source": "ro80t/hush",
+      "sourceType": "github",
+      "skillPath": "skills/hush-review/SKILL.md",
+      "computedHash": "bfe62505e9a31b5b69bf864bed945ae8ef02b9542f555854977a78b17b9ab035"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "2b16bd26632e294094da7e6d2352dce4c1efec66d3b90c88f0e059b28e2d6e04"
+    },
+    "natural-japanese": {
+      "source": "coji/natural-japanese",
+      "sourceType": "github",
+      "skillPath": "skills/natural-japanese/SKILL.md",
+      "computedHash": "c8b7a88666cb9ca03e0b3d63441b3b2f60826df5a1a7cf058bc26a23ee2c58ee"
+    },
+    "stop-ai-slop-jp": {
+      "source": "iKora128/stop-ai-slop-jp",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "4165359286fda94f6d21888bce8286af3c13c7ddb2c162ecb7c311840ef5eeca"
+    },
+    "typescript-design": {
+      "source": "fa0311/typescript-design-skill",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-design/SKILL.md",
+      "computedHash": "3e88b6ee2ed0ad24c2024e3539aa731e2e400cd4bfc7ba48a3e4374507bf9165"
+    },
+    "workers-best-practices": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/workers-best-practices/SKILL.md",
+      "computedHash": "e12970301753ed7eaa5ca375d4b98e0e36c9554e8f2809cb4b543c2ea7d9b4b8"
+    },
+    "wrangler": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/wrangler/SKILL.md",
+      "computedHash": "9b410cfe14c41d3d4ace5d42e2e19f4eb96104c659b5ed45abf341db28d81029"
+    }
+  }
+}
