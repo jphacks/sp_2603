@@ -64,13 +64,18 @@ wrangler で `Authentication error [code: 10000]` が出るときは、ログイ
 
 ## ドメイン
 
-本番の URL は `https://fllooat.mfmf.moe` です。mfmf.moe は Cloudflare に「保留中」として追加済みで、ネームサーバーを Cloudflare に切り替えると有効になります。
+本番の URL は `https://fllooat.mfmf.moe` です。mfmf.moe は Cloudflare アカウント mofumofupop のゾーンで、ネームサーバーは Cloudflare (`carmelo.ns.cloudflare.com`、`vita.ns.cloudflare.com`) に切り替え済みです。
 
-mfmf.moe はメール (Lark) にも使っているので、ネームサーバーを切り替える前に次を確認します。
+`apps/api/wrangler.jsonc` の `routes` で `fllooat.mfmf.moe` をカスタムドメインにしています。Worker をデプロイすると、Cloudflare がこのホスト名の DNS レコードと証明書を自動で作ります。DNS のレコードを手で足す必要はありません。
 
-1. 今の DNS (エックスドメイン) のレコードと、Cloudflare の「DNS → Records」を見比べ、足りないレコードを足す。MX と SPF は読み込まれているが、DKIM (`*._domainkey`)、DMARC (`_dmarc`)、サブドメインの A / CNAME は読み込まれないことがある。
-2. エックスドメインでネームサーバーを Cloudflare が指定するもの (ダッシュボードの「Overview」に表示される 2 つ) に変える。
-3. Cloudflare が「有効」になったら、`apps/api/wrangler.jsonc` に `fllooat.mfmf.moe` をカスタムドメインとして設定する。
+mfmf.moe はほかの用途にも使っているので、DNS を変えるときは次のレコードを消さないようにします。
+
+| レコード | 用途 |
+| --- | --- |
+| `mfmf.moe` の MX 3 件と TXT 2 件 (SPF、Lark の確認コード) | メール (Lark) |
+| `universe.mfmf.moe`、`api.universe.mfmf.moe` の CNAME、`_vercel.mfmf.moe` の TXT | Vercel で動かしている別のサイト |
+
+ネームサーバーの切り替えは、エックスドメインのドメインパネルの「ネームサーバー設定」で行います。DNS レコードの一覧に NS レコードを書くだけでは切り替わりません。
 
 ## デプロイ
 

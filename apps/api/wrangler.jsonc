@@ -7,6 +7,8 @@
   "compatibility_date": "2026-10-17",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // デプロイすると、mfmf.moe のゾーンに DNS レコードと証明書が自動で作られる。
+  "routes": [{ "pattern": "fllooat.mfmf.moe", "custom_domain": true }],
   // apps/web のビルド結果を同じ Worker から配信するので、CORS の設定は不要。
   "assets": {
     "directory": "../web/dist",
