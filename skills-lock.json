@@ -43,12 +43,6 @@
       "skillPath": "skills/hush-review/SKILL.md",
       "computedHash": "bfe62505e9a31b5b69bf864bed945ae8ef02b9542f555854977a78b17b9ab035"
     },
-    "impeccable": {
-      "source": "pbakaus/impeccable",
-      "sourceType": "github",
-      "skillPath": ".agents/skills/impeccable/SKILL.md",
-      "computedHash": "2b16bd26632e294094da7e6d2352dce4c1efec66d3b90c88f0e059b28e2d6e04"
-    },
     "natural-japanese": {
       "source": "coji/natural-japanese",
       "sourceType": "github",

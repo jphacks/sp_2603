@@ -65,7 +65,6 @@ function TodosPage() {
 ## UI
 
 - UI ライブラリはまだ決めていない。ユーザーの指示なしに追加せず、Tailwind のユーティリティで書く。
-- 見た目の品質を上げたいときは `impeccable` の skill を使う。
 
 ## API がまだない場合
 
