@@ -15,6 +15,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // スマホの実機から Cloudflare Tunnel 経由で開けるようにする (docs/development.md を参照)。
+    allowedHosts: [".trycloudflare.com"],
     proxy: {
       "/api": "http://localhost:8787",
     },
