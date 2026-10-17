@@ -13,7 +13,7 @@ TypeScript は 7 (ネイティブ版) を使っています。VS Code では Typ
 ```sh
 pnpm install
 cp apps/api/.dev.vars.example apps/api/.dev.vars
-pnpm --filter @sp-2603/api exec auth secret   # 出力された値を .dev.vars の BETTER_AUTH_SECRET に貼る
+pnpm --filter @fllooat/api exec auth secret   # 出力された値を .dev.vars の BETTER_AUTH_SECRET に貼る
 pnpm db:migrate:local                         # ローカル D1 にテーブルを作る
 pnpm dev                                      # http://localhost:5173
 ```
@@ -37,7 +37,7 @@ API のドキュメントは http://localhost:5173/api/docs で見られます�
 | 環境 | アプリの URL |
 | --- | --- |
 | ローカル | `http://localhost:5173` |
-| 本番 | `https://sp-2603.<アカウントのサブドメイン>.workers.dev` |
+| 本番 | `https://fllooat.<アカウントのサブドメイン>.workers.dev` |
 
 - **Google**: [Google Cloud Console](https://console.cloud.google.com/apis/credentials) で「OAuth クライアント ID」(種類はウェブアプリケーション) を作る。承認済みのリダイレクト URI に、ローカルと本番の両方のコールバック URL を登録できる。
 - **GitHub**: [Developer settings](https://github.com/settings/developers) で OAuth App を作る。コールバック URL は 1 つしか登録できないので、ローカル用と本番用で 2 つ作る。
@@ -51,8 +51,8 @@ Cloudflare Workers Builds で、GitHub の main ブランチに merge される�
 1. D1 データベースを作り、表示された `database_id` を `apps/api/wrangler.jsonc` の `d1_databases` に追記してコミットする。
 
    ```sh
-   pnpm --filter @sp-2603/api exec wrangler login
-   pnpm --filter @sp-2603/api exec wrangler d1 create sp-2603-db
+   pnpm --filter @fllooat/api exec wrangler login
+   pnpm --filter @fllooat/api exec wrangler d1 create fllooat-db
    ```
 
 2. Cloudflare のダッシュボードで「Workers & Pages」→「Create」→「Import a repository」からこのリポジトリを選び、ビルド設定を次のようにする。
@@ -61,8 +61,8 @@ Cloudflare Workers Builds で、GitHub の main ブランチに merge される�
    | --- | --- |
    | Root directory | (空欄。リポジトリのルート) |
    | Build command | `pnpm build` |
-   | Deploy command | `pnpm db:migrate:remote && pnpm --filter @sp-2603/api exec wrangler deploy` |
-   | Non-production branch deploy command | `pnpm --filter @sp-2603/api exec wrangler versions upload` |
+   | Deploy command | `pnpm db:migrate:remote && pnpm --filter @fllooat/api exec wrangler deploy` |
+   | Non-production branch deploy command | `pnpm --filter @fllooat/api exec wrangler versions upload` |
    | Build variables | `PNPM_VERSION` = `10.5.2` |
 
    Node.js のバージョンは `.node-version` から読み込まれます。
@@ -71,8 +71,8 @@ Cloudflare Workers Builds で、GitHub の main ブランチに merge される�
 
    | 名前 | 値 |
    | --- | --- |
-   | `BETTER_AUTH_SECRET` | `pnpm --filter @sp-2603/api exec auth secret` で作った値 (ローカルとは別の値にする) |
-   | `BETTER_AUTH_URL` | 本番の URL (`https://sp-2603.<サブドメイン>.workers.dev`) |
+   | `BETTER_AUTH_SECRET` | `pnpm --filter @fllooat/api exec auth secret` で作った値 (ローカルとは別の値にする) |
+   | `BETTER_AUTH_URL` | 本番の URL (`https://fllooat.<サブドメイン>.workers.dev`) |
    | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | 本番用の OAuth クライアント |
    | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | 本番用の OAuth App |
 

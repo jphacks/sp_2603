@@ -1,5 +1,5 @@
 # cp .dev.vars.example .dev.vars で作成する。.dev.vars はコミットしない。
-# 生成: pnpm --filter @sp-2603/api exec auth secret
+# 生成: pnpm --filter @fllooat/api exec auth secret
 BETTER_AUTH_SECRET=
 # Vite のプロキシ経由でアクセスするので 5173 を指定する
 BETTER_AUTH_URL=http://localhost:5173

@@ -1,5 +1,5 @@
 {
-  "name": "@sp-2603/web",
+  "name": "@fllooat/web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,7 +15,7 @@
     ]
   },
   "dependencies": {
-    "@sp-2603/api-client": "workspace:^",
+    "@fllooat/api-client": "workspace:^",
     "@tanstack/react-query": "^5.104.3",
     "@tanstack/react-router": "^1.170.45",
     "better-auth": "^1.7.10",

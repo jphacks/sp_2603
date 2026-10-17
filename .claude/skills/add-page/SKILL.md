@@ -28,7 +28,7 @@ description: このリポジトリのフロント (apps/web) に画面 (ルー�
 
 3. `pnpm dev` (または `pnpm dev:mock`) が起動していれば `routeTree.gen.ts` は自動で更新される。起動していなければ `pnpm build` で更新される。
 4. リンクは `<Link to="/about">` を使う。`to` と `params` は型チェックされる。
-5. API のデータは `@sp-2603/api-client` の hooks で取る (`add-api-endpoint` を参照)。読み込み中とエラーの表示も書く。
+5. API のデータは `@fllooat/api-client` の hooks で取る (`add-api-endpoint` を参照)。読み込み中とエラーの表示も書く。
 
 ## ログイン必須の画面
 

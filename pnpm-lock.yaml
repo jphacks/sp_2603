@@ -63,7 +63,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@sp-2603/api-client':
+      '@fllooat/api-client':
         specifier: workspace:^
         version: link:../../packages/api-client
       '@tanstack/react-query':

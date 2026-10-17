@@ -1,4 +1,4 @@
-import { useGetHealthz } from "@sp-2603/api-client";
+import { useGetHealthz } from "@fllooat/api-client";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({

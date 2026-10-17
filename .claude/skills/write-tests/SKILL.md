@@ -53,7 +53,7 @@ describe("Todo", () => {
 
 ```sh
 pnpm test                                   # 全テスト
-pnpm --filter @sp-2603/api test:watch       # 変更を監視して再実行
+pnpm --filter @fllooat/api test:watch       # 変更を監視して再実行
 ```
 
 ## テストが落ちたとき
