@@ -101,7 +101,15 @@ API のドキュメントは http://localhost:5173/api/docs で見られます�
 
 - メッセージは `<type>: <日本語の要約>` にする。例: `feat: Todo の削除 API を追加`
 - type: `feat` (機能)、`fix` (バグ修正)、`docs` (ドキュメント)、`refactor` (振る舞いを変えない整理)、`test` (テスト)、`style` (見た目だけの整形)、`perf` (性能)、`build` (依存やビルド)、`ci` (CI)、`chore` (その他)
-- 対象を示したいときは scope を付ける: `feat(web): ...`、`fix(api): ...`
+- 変更が 1 か所に収まるときは scope を付ける。複数の場所にまたがる変更やルートの設定には付けない。
+
+  | 変更する場所 | scope | 例 |
+  | --- | --- | --- |
+  | `apps/web` | `web` | `feat(web): ログイン画面を追加` |
+  | `apps/api` | `api` | `fix(api): セッション切れで 500 になる問題を修正` |
+  | `packages/<name>` | パッケージのディレクトリ名 | `feat(api-client): エラー型を export` |
+  | `.claude/` (skill、設定) | `claude` | `docs(claude): add-page の skill を更新` |
+  | 複数の場所、ルートの設定 | なし | `chore: Biome の設定を変更` |
 - 1 コミットには 1 つの論理的な変更だけを入れ、細かい粒度で積む。生成物は、それを生んだ変更と同じコミットに入れる。
 - 理由が要約から読み取れないときだけ、本文に「なぜ」を書く。
 
