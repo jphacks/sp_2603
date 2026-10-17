@@ -1,18 +1,19 @@
+import type { MemberDetail } from "@fllooat/api-client";
 import { XIcon } from "lucide-react";
 import { GlassDialogContent } from "@/components/glass-dialog";
 import { Dialog, DialogClose, DialogTitle } from "@/components/ui/dialog";
-import type { MemberDetail } from "@/hooks/use-placeholder-room";
 
 type MemberDetailDialogProps = {
-  /** 開いている気球の持ち主。undefined なら閉じる。 */
+  open: boolean;
+  /** 開いている気球の持ち主。読み込み中は undefined。 */
   member: MemberDetail | undefined;
   isMe: boolean;
   onClose: () => void;
 };
 
-export function MemberDetailDialog({ member, isMe, onClose }: MemberDetailDialogProps) {
+export function MemberDetailDialog({ open, member, isMe, onClose }: MemberDetailDialogProps) {
   return (
-    <Dialog open={member !== undefined} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <GlassDialogContent className="gap-3">
         <div className="flex items-center justify-between">
           <DialogTitle className="truncate text-sm font-normal">
@@ -22,7 +23,9 @@ export function MemberDetailDialog({ member, isMe, onClose }: MemberDetailDialog
             <XIcon className="size-6" strokeWidth={2.5} />
           </DialogClose>
         </div>
-        {member && member.tasks.length > 0 ? (
+        {!member ? (
+          <p className="text-sm">読み込み中…</p>
+        ) : member.tasks.length > 0 ? (
           <ul className="grid gap-2">
             {member.tasks.map((task) => (
               <li
