@@ -34,6 +34,7 @@
     {
       "binding": "DB",
       "database_name": "fllooat-db",
+      "database_id": "9b8ac1c7-59bd-404d-97a4-d0bda957054b",
       "migrations_dir": "drizzle"
     }
   ]
