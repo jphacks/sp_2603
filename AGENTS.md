@@ -154,7 +154,7 @@ Cloudflare Workers Builds で、main への merge 時に自動でデプロイさ
 
 ## サードパーティの素材とコード
 
-フォント、画像やアイコンなどの素材、他のプロジェクトや記事から引用したコードを取り込むときは、[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) の手順に従って記録します。
+フォント、画像やアイコンなどの素材、他のプロジェクトや記事から引用したコードを取り込むときは、[docs/third-party-licenses.md](docs/third-party-licenses.md) の手順に従い、[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) に記録します。
 
 - ライセンスの記載がないもの、GPL など派生物にも同じライセンスを求めるものは使わない。
 - 引用したコードには、引用箇所の直前に出典 (URL とライセンス) をコメントで書く。
