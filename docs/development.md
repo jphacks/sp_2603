@@ -30,25 +30,47 @@ API のドキュメントは http://localhost:5173/api/docs で見られます�
 
 ブランチ、コミット、PR、Issue の規則は [AGENTS.md](../AGENTS.md#git-と-github) にあります。AI エージェントもこの規則に従います。
 
-## OAuth アプリの登録
+## OAuth アプリ
+
+ログイン用の OAuth アプリは作成済みです。本番のシークレットを開発者の手元に置かないよう、開発用と本番用を分けています。開発用のクライアント ID とシークレットはチームの管理者からもらい、`apps/api/.dev.vars` に書きます。Git、Issue、チャットには貼りません。
+
+| | 開発用 | 本番用 |
+| --- | --- | --- |
+| アプリの URL | `http://localhost:5173` | `https://fllooat.mfmf.moe` |
+| Google | Google Cloud プロジェクト `fllooat` のクライアント「Fllooat (dev)」 | 同じプロジェクトのクライアント「Fllooat」 |
+| GitHub | org mofumofupop の OAuth App「Fllooat (dev)」 | org mofumofupop の OAuth App「Fllooat」 |
 
 コールバック URL は `<アプリの URL>/api/auth/callback/<google|github>` です。
 
-| 環境 | アプリの URL |
-| --- | --- |
-| ローカル | `http://localhost:5173` |
-| 本番 | `https://fllooat.<アカウントのサブドメイン>.workers.dev` |
+Google の OAuth 同意画面は「テスト中」の状態です。テストユーザーに登録した Google アカウントしかログインできないので、ログインできないときは Google Cloud の「Google Auth Platform → 対象 → テストユーザー」に追加してもらってください。デモの前に、プライバシーポリシーのページを用意して公開ステータスを「本番環境」に切り替えます。
 
-- **Google**: [Google Cloud Console](https://console.cloud.google.com/apis/credentials) で「OAuth クライアント ID」(種類はウェブアプリケーション) を作る。承認済みのリダイレクト URI に、ローカルと本番の両方のコールバック URL を登録できる。
-- **GitHub**: [Developer settings](https://github.com/settings/developers) で OAuth App を作る。コールバック URL は 1 つしか登録できないので、ローカル用と本番用で 2 つ作る。
+## Cloudflare アカウント
+
+本番は Cloudflare アカウント mofumofupop で動かします。`apps/api/wrangler.jsonc` の `account_id` で指定しているので、wrangler が複数のアカウントにログインしていても、ほかのアカウントにはデプロイされません。
+
+メンバーを追加するときは、ダッシュボードの「Manage account → Members → Invite」で招待します。ロールは「Super Administrator - All Privileges」にします。招待できるのは Super Administrator だけです。
+
+wrangler で `Authentication error [code: 10000]` が出るときは、ログインしたあとに追加されたアカウントへの権限がトークンにありません。`pnpm --filter @fllooat/api exec wrangler login` でログインし直してください。
+
+## ドメイン
+
+本番の URL は `https://fllooat.mfmf.moe` です。mfmf.moe は Cloudflare に「保留中」として追加済みで、ネームサーバーを Cloudflare に切り替えると有効になります。
+
+mfmf.moe はメール (Lark) にも使っているので、ネームサーバーを切り替える前に次を確認します。
+
+1. 今の DNS (エックスドメイン) のレコードと、Cloudflare の「DNS → Records」を見比べ、足りないレコードを足す。MX と SPF は読み込まれているが、DKIM (`*._domainkey`)、DMARC (`_dmarc`)、サブドメインの A / CNAME は読み込まれないことがある。
+2. エックスドメインでネームサーバーを Cloudflare が指定するもの (ダッシュボードの「Overview」に表示される 2 つ) に変える。
+3. Cloudflare が「有効」になったら、`apps/api/wrangler.jsonc` に `fllooat.mfmf.moe` をカスタムドメインとして設定する。
 
 ## デプロイ
 
 Cloudflare Workers Builds で、GitHub の main ブランチに merge されると自動でデプロイされます。PR ごとにプレビュー URL も作られます。
 
+Workers Builds をつなぐには、Cloudflare の GitHub アプリをリポジトリの持ち主 (jphacks org) に入れる必要があり、org の admin の許可が要ります。許可が得られるまでは、下の「手動でデプロイする場合」の手順でデプロイします。
+
 ### 初回だけ行う設定
 
-1. D1 データベースを作り、表示された `database_id` を `apps/api/wrangler.jsonc` の `d1_databases` に追記してコミットする。
+1. D1 データベースを作り、表示された `database_id` を `apps/api/wrangler.jsonc` の `d1_databases` に追記してコミットする (作成済みなら不要)。
 
    ```sh
    pnpm --filter @fllooat/api exec wrangler login
@@ -72,7 +94,7 @@ Cloudflare Workers Builds で、GitHub の main ブランチに merge される�
    | 名前 | 値 |
    | --- | --- |
    | `BETTER_AUTH_SECRET` | `pnpm --filter @fllooat/api exec auth secret` で作った値 (ローカルとは別の値にする) |
-   | `BETTER_AUTH_URL` | 本番の URL (`https://fllooat.<サブドメイン>.workers.dev`) |
+   | `BETTER_AUTH_URL` | `https://fllooat.mfmf.moe` |
    | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | 本番用の OAuth クライアント |
    | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | 本番用の OAuth App |
 
