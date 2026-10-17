@@ -83,9 +83,9 @@ mfmf.moe はほかの用途にも使っているので、DNS を変えるとき�
 
 ## デプロイ
 
-Cloudflare Workers Builds で、GitHub の main ブランチに merge されると自動でデプロイされます。PR ごとにプレビュー URL も作られます。
+GitHub Actions の `Deploy` ワークフロー ([.github/workflows/deploy.yml](../.github/workflows/deploy.yml)) で、main の CI が通ると自動でデプロイされます。web をビルドし、本番 D1 にマイグレーションを適用してから Worker をデプロイします。Actions の画面から手動で実行することもできます。
 
-Workers Builds をつなぐには、Cloudflare の GitHub アプリをリポジトリの持ち主 (jphacks org) に入れる必要があり、org の admin の許可が要ります。許可が得られるまでは、下の「手動でデプロイする場合」の手順でデプロイします。
+Cloudflare Workers Builds は、Cloudflare の GitHub アプリを jphacks org に入れるのに admin の許可が要るため使っていません。
 
 ### 初回だけ行う設定
 
@@ -96,19 +96,15 @@ Workers Builds をつなぐには、Cloudflare の GitHub アプリをリポジ�
    pnpm --filter @fllooat/api exec wrangler d1 create fllooat-db
    ```
 
-2. Cloudflare のダッシュボードで「Workers & Pages」→「Create」→「Import a repository」からこのリポジトリを選び、ビルド設定を次のようにする。
+2. Cloudflare のダッシュボードの「Manage account」→「Account API tokens」で、テンプレート「Edit Cloudflare Workers」を元に API トークンを作る。アカウントは mofumofupop、ゾーンは mfmf.moe に絞り、権限に「D1 Edit」を足す。
 
-   | 項目 | 値 |
-   | --- | --- |
-   | Root directory | (空欄。リポジトリのルート) |
-   | Build command | `pnpm build` |
-   | Deploy command | `pnpm db:migrate:remote && pnpm --filter @fllooat/api exec wrangler deploy` |
-   | Non-production branch deploy command | `pnpm --filter @fllooat/api exec wrangler versions upload` |
-   | Build variables | `PNPM_VERSION` = `10.5.2` |
+3. 作ったトークンを、リポジトリの Actions のシークレット `CLOUDFLARE_API_TOKEN` に登録する。
 
-   Node.js のバージョンは `.node-version` から読み込まれます。
+   ```sh
+   gh secret set CLOUDFLARE_API_TOKEN -R jphacks/sp_2603
+   ```
 
-3. Worker の「Settings」→「Variables and Secrets」で、本番用のシークレットを登録する。
+4. Worker の「Settings」→「Variables and Secrets」で、本番用のシークレットを登録する。登録したシークレットは、その後のデプロイでも引き継がれます。
 
    | 名前 | 値 |
    | --- | --- |

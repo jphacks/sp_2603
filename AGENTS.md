@@ -133,7 +133,7 @@ API のドキュメントは http://localhost:5173/api/docs で見られます�
 
 ## デプロイ
 
-Cloudflare Workers Builds で、main への merge 時に自動でデプロイされます。設定手順は [docs/development.md](docs/development.md#デプロイ) にあります。
+GitHub Actions の `Deploy` ワークフローで、main の CI が通ると自動でデプロイされます (本番 D1 のマイグレーションも適用されます)。設定手順は [docs/development.md](docs/development.md#デプロイ) にあります。
 
 - 手動のデプロイ (`pnpm cf:deploy`) と本番 D1 への操作 (`pnpm db:migrate:remote`) は、ユーザーの指示があるときだけ実行する。
 - 秘密情報は `.dev.vars` (ローカル) と Cloudflare のダッシュボードまたは `wrangler secret put` (本番) で扱い、コミットしない。
