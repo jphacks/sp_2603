@@ -3,6 +3,8 @@ import { Scalar } from "@scalar/hono-api-reference";
 import { createAuth } from "./auth";
 import { SESSION_COOKIE_SCHEME } from "./lib/openapi";
 import { healthzRoutes } from "./routes/healthz";
+import { meRoutes } from "./routes/me";
+import { roomRoutes } from "./routes/rooms";
 import type { AppEnv } from "./types";
 
 export const app = new OpenAPIHono<AppEnv>().basePath("/api");
@@ -11,6 +13,8 @@ export const app = new OpenAPIHono<AppEnv>().basePath("/api");
 app.on(["GET", "POST"], "/auth/*", (c) => createAuth(c.env).handler(c.req.raw));
 
 app.route("/", healthzRoutes);
+app.route("/", meRoutes);
+app.route("/", roomRoutes);
 
 app.openAPIRegistry.registerComponent("securitySchemes", SESSION_COOKIE_SCHEME, {
   type: "apiKey",

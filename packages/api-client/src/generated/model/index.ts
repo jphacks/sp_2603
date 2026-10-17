@@ -5,5 +5,21 @@
  * OpenAPI spec version: 0.0.0
  */
 
+export * from './apiErrorBody';
+export * from './apiErrorBodyCode';
+export * from './droppedTask';
+export * from './errorDetails';
 export * from './healthz';
 export * from './healthzStatus';
+export * from './history';
+export * from './joinedRoom';
+export * from './me';
+export * from './memberDetail';
+export * from './meUser';
+export * from './myStatus';
+export * from './newTask';
+export * from './reloadTask';
+export * from './room';
+export * from './roomMember';
+export * from './task';
+export * from './validationIssue';
