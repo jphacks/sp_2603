@@ -1,3 +1,5 @@
+import type { ApiErrorBody, ApiErrorBodyCode } from "./generated/model";
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -7,6 +9,24 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
 }
+
+/**
+ * API が返したエラーかどうかを、`code` まで含めて確かめる。true なら `error.body` を型付きで読める。
+ *
+ * @example
+ * if (isApiError(addTask.error, "WEIGHT_LIMIT_EXCEEDED")) {
+ *   setMaxWeight(addTask.error.body.details?.remaining ?? 0);
+ * }
+ */
+export const isApiError = <C extends ApiErrorBodyCode>(
+  error: unknown,
+  code?: C,
+): error is ApiError & { body: ApiErrorBody & { code: C } } => {
+  if (!(error instanceof ApiError)) return false;
+  const { body } = error;
+  if (typeof body !== "object" || body === null || !("code" in body)) return false;
+  return code === undefined || body.code === code;
+};
 
 const parseBody = async (response: Response): Promise<unknown> => {
   if ([204, 205, 304].includes(response.status)) return null;

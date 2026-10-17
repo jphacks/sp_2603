@@ -26,6 +26,390 @@
         "required": [
           "status"
         ]
+      },
+      "Me": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "u_abc"
+              },
+              "name": {
+                "type": "string",
+                "example": "Alice"
+              },
+              "image": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "example": "https://example.com/alice.png"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "image"
+            ]
+          },
+          "roomId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{6}$",
+            "description": "ルームに入っていなければ null",
+            "example": "012345"
+          }
+        },
+        "required": [
+          "user",
+          "roomId"
+        ]
+      },
+      "ApiErrorBody": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "VALIDATION_ERROR",
+              "UNAUTHORIZED",
+              "NOT_ROOM_MEMBER",
+              "ROOM_NOT_FOUND",
+              "MEMBER_NOT_FOUND",
+              "TASK_NOT_FOUND",
+              "WEIGHT_LIMIT_EXCEEDED",
+              "RATE_LIMITED",
+              "ROOM_ID_EXHAUSTED"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "$ref": "#/components/schemas/ErrorDetails"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "ErrorDetails": {
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssue"
+            }
+          },
+          "remaining": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99
+          }
+        }
+      },
+      "ValidationIssue": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "message"
+        ]
+      },
+      "MyStatus": {
+        "type": "object",
+        "properties": {
+          "busy": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "忙しさ。乗っているタスクの重さの合計 (%)",
+            "example": 60
+          },
+          "remaining": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "あと何 % まで乗せられるか",
+            "example": 40
+          },
+          "statusUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "description": "乗っているタスク。乗せた日時の新しい順"
+          }
+        },
+        "required": [
+          "busy",
+          "remaining",
+          "statusUpdatedAt",
+          "tasks"
+        ]
+      },
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 12
+          },
+          "title": {
+            "type": "string",
+            "example": "API の実装"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "タスクの重さ (%)",
+            "example": 30
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "weight",
+          "createdAt"
+        ]
+      },
+      "NewTask": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 30,
+            "example": "API の実装"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "タスクの重さ (%)",
+            "example": 30
+          }
+        },
+        "required": [
+          "title",
+          "weight"
+        ]
+      },
+      "History": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DroppedTask"
+            }
+          }
+        },
+        "required": [
+          "tasks"
+        ]
+      },
+      "DroppedTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 9
+          },
+          "title": {
+            "type": "string",
+            "example": "デザインの確認"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "タスクの重さ (%)",
+            "example": 30
+          },
+          "droppedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "weight",
+          "droppedAt"
+        ]
+      },
+      "ReloadTask": {
+        "type": "object",
+        "properties": {
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "タスクの重さ (%)",
+            "example": 30
+          }
+        },
+        "required": [
+          "weight"
+        ]
+      },
+      "JoinedRoom": {
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "description": "6 桁のルーム ID (000000 から 999999)。先頭の 0 を落とさないよう文字列で持つ",
+            "example": "012345"
+          }
+        },
+        "required": [
+          "roomId"
+        ]
+      },
+      "Room": {
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "description": "6 桁のルーム ID (000000 から 999999)。先頭の 0 を落とさないよう文字列で持つ",
+            "example": "012345"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoomMember"
+            },
+            "description": "メンバー。自分を含めて入室順"
+          }
+        },
+        "required": [
+          "roomId",
+          "serverTime",
+          "members"
+        ]
+      },
+      "RoomMember": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "u_abc"
+          },
+          "name": {
+            "type": "string",
+            "example": "Alice"
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "https://example.com/alice.png"
+          },
+          "busy": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "忙しさ。乗っているタスクの重さの合計 (%)",
+            "example": 60
+          },
+          "statusUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isMe": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "image",
+          "busy",
+          "statusUpdatedAt",
+          "isMe"
+        ]
+      },
+      "MemberDetail": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "u_abc"
+          },
+          "name": {
+            "type": "string",
+            "example": "Alice"
+          },
+          "image": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "https://example.com/alice.png"
+          },
+          "busy": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "忙しさ。乗っているタスクの重さの合計 (%)",
+            "example": 60
+          },
+          "statusUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "description": "乗っているタスク。乗せた日時の新しい順"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "image",
+          "busy",
+          "statusUpdatedAt",
+          "serverTime",
+          "tasks"
+        ]
       }
     },
     "parameters": {}
@@ -44,6 +428,587 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Healthz"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "getMe",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ログイン中のユーザーと、今いるルーム",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/tasks": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "getMyTasks",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "自分の状態と乗っているタスク",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "addMyTask",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewTask"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "タスクを乗せた後の自分の状態",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力の形が正しくない (VALIDATION_ERROR)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "重さの合計が 100% を超える (WEIGHT_LIMIT_EXCEEDED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/tasks/drop": {
+      "post": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "dropMyTasks",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "タスクをすべて落とした後の自分の状態",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/history": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "getMyHistory",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "落としたタスクの履歴。落とした日時の新しい順に最新 50 件",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/History"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/history/{taskId}/reload": {
+      "post": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "reloadMyTask",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "example": 9
+            },
+            "required": true,
+            "name": "taskId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReloadTask"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "乗せ直した後の自分の状態",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力の形が正しくない (VALIDATION_ERROR)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "自分の履歴にそのタスクがない (TASK_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "重さの合計が 100% を超える (WEIGHT_LIMIT_EXCEEDED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms": {
+      "post": {
+        "tags": [
+          "rooms"
+        ],
+        "operationId": "createRoom",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "ルームを作って入った。前のルームにいれば抜ける",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinedRoom"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "空いているルーム ID が見つからなかった (ROOM_ID_EXHAUSTED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{roomId}/members": {
+      "post": {
+        "tags": [
+          "rooms"
+        ],
+        "operationId": "joinRoom",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{6}$",
+              "description": "6 桁のルーム ID (000000 から 999999)。先頭の 0 を落とさないよう文字列で持つ",
+              "example": "012345"
+            },
+            "required": true,
+            "description": "6 桁のルーム ID (000000 から 999999)。先頭の 0 を落とさないよう文字列で持つ",
+            "name": "roomId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ルームに入った。前のルームにいれば抜ける",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinedRoom"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力の形が正しくない (VALIDATION_ERROR)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ルームがない (ROOM_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "短い時間に入室を繰り返した (RATE_LIMITED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{roomId}": {
+      "get": {
+        "tags": [
+          "rooms"
+        ],
+        "operationId": "getRoom",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{6}$",
+              "description": "6 桁のルーム ID (000000 から 999999)。先頭の 0 を落とさないよう文字列で持つ",
+              "example": "012345"
+            },
+            "required": true,
+            "description": "6 桁のルーム ID (000000 から 999999)。先頭の 0 を落とさないよう文字列で持つ",
+            "name": "roomId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ルームのメンバーと気球の状態。数秒ごとにポーリングされる",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Room"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力の形が正しくない (VALIDATION_ERROR)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "そのルームのメンバーではない (NOT_ROOM_MEMBER)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ルームがない (ROOM_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{roomId}/members/{userId}": {
+      "get": {
+        "tags": [
+          "rooms"
+        ],
+        "operationId": "getRoomMember",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{6}$",
+              "description": "6 桁のルーム ID (000000 から 999999)。先頭の 0 を落とさないよう文字列で持つ",
+              "example": "012345"
+            },
+            "required": true,
+            "description": "6 桁のルーム ID (000000 から 999999)。先頭の 0 を落とさないよう文字列で持つ",
+            "name": "roomId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "userId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "気球の詳細。タスクのタイトルを含む",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力の形が正しくない (VALIDATION_ERROR)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "そのルームのメンバーではない (NOT_ROOM_MEMBER)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "その人は同じルームにいない (MEMBER_NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
                 }
               }
             }
