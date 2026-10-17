@@ -16,7 +16,7 @@ function RootLayout() {
       <header className="border-b">
         <nav className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-3">
           <Link to="/" className="font-semibold">
-            sp-2603
+            Fllooat
           </Link>
           <div className="ml-auto">
             <UserMenu />

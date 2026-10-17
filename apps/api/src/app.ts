@@ -20,7 +20,7 @@ app.openAPIRegistry.registerComponent("securitySchemes", SESSION_COOKIE_SCHEME, 
 
 export const openApiConfig = {
   openapi: "3.1.0",
-  info: { title: "sp-2603 API", version: "0.0.0" },
+  info: { title: "Fllooat API", version: "0.0.0" },
 } as const;
 
 app.doc31("/openapi.json", openApiConfig);
