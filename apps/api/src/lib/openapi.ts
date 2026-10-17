@@ -1,7 +1,7 @@
-import { z } from "@hono/zod-openapi";
+import type { OpenAPIHonoOptions } from "@hono/zod-openapi";
 import { requireAuth } from "../middleware/require-auth";
-
-export const ErrorSchema = z.object({ message: z.string() }).openapi("Error");
+import type { AuthedEnv } from "../types";
+import { errorBody, errorResponse } from "./errors";
 
 export const SESSION_COOKIE_SCHEME = "cookieAuth";
 
@@ -12,8 +12,23 @@ export const authRequired = {
 };
 
 export const unauthorizedResponse = {
-  401: {
-    description: "Not signed in",
-    content: { "application/json": { schema: ErrorSchema } },
-  },
+  401: errorResponse("ログインしていない (UNAUTHORIZED)"),
 } as const;
+
+export const validationErrorResponse = {
+  400: errorResponse("入力の形が正しくない (VALIDATION_ERROR)"),
+} as const;
+
+// ルーターを作るときに `new OpenAPIHono<AuthedEnv>({ defaultHook })` と渡す。
+// zod の検証に落ちた入力を、ほかのエラーと同じ形の 400 で返す。
+export const defaultHook: NonNullable<OpenAPIHonoOptions<AuthedEnv>["defaultHook"]> = (
+  result,
+  c,
+) => {
+  if (result.success) return;
+  const issues = result.error.issues.map((issue) => ({
+    path: issue.path.join("."),
+    message: issue.message,
+  }));
+  return c.json(errorBody("VALIDATION_ERROR", "Invalid request", { issues }), 400);
+};
