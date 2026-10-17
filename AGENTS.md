@@ -22,7 +22,7 @@ pnpm workspaces のモノレポで、Cloudflare Workers にデプロイします
 
 本番では 1 つの Worker が `/api/*` を Hono で処理し、それ以外は `apps/web/dist` を static assets として返します。同一オリジンなので CORS の設定は不要です。
 
-UI ライブラリはまだ決めていません。ユーザーの指示なしに UI ライブラリ (shadcn/ui, MUI など) を追加しないでください。それまでは Tailwind のユーティリティだけで書きます。
+UI ライブラリは shadcn/ui (Radix ベース) を使います。部品は `pnpm --filter @fllooat/web exec shadcn add <名前>` で `apps/web/src/components/ui/` に追加します。アニメーションには `motion`、気球を横に並べるスクロールには `embla-carousel-react` を使います。ユーザーの指示なしに、ほかの UI ライブラリ (MUI など) を追加しないでください。
 
 ## API の型はスキーマから流れる
 

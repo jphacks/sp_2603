@@ -1,8 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { createRootRouteWithContext, Link, Outlet } from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { UserMenu } from "@/components/user-menu";
 
 type RouterContext = { queryClient: QueryClient };
 
@@ -10,22 +9,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
 });
 
+// 気球の空を画面いっぱいに描くので、共通のヘッダーや幅の制限は置かない。
 function RootLayout() {
   return (
-    <div className="min-h-dvh">
-      <header className="border-b">
-        <nav className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-3">
-          <Link to="/" className="font-semibold">
-            Fllooat
-          </Link>
-          <div className="ml-auto">
-            <UserMenu />
-          </div>
-        </nav>
-      </header>
-      <main className="mx-auto max-w-3xl px-4 py-8">
-        <Outlet />
-      </main>
+    <div className="h-dvh overflow-hidden">
+      <Outlet />
       <ReactQueryDevtools buttonPosition="bottom-left" />
       <TanStackRouterDevtools position="bottom-right" />
     </div>

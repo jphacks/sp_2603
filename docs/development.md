@@ -30,6 +30,16 @@ API のドキュメントは http://localhost:5173/api/docs で見られます�
 
 ブランチ、コミット、PR、Issue の規則は [AGENTS.md](../AGENTS.md#git-と-github) にあります。AI エージェントもこの規則に従います。
 
+## スマホの実機で確かめる
+
+スマホを振ってタスクを落とす機能は、iPhone では HTTPS でないと動きません。Cloudflare Tunnel で開発サーバーに HTTPS の URL を付けて、スマホから開きます。
+
+1. [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) をインストールする。
+2. `pnpm dev:mock` で起動する。OAuth のコールバック URL はトンネルの URL に合わないので、ログインはモックを使う。
+3. 別のターミナルで `cloudflared tunnel --url http://localhost:5173` を実行し、表示された `https://<ランダムな名前>.trycloudflare.com` をスマホで開く。
+
+iPhone では、画面の「スマホを振って落とせるようにする」を押して、モーションセンサーの利用を許可します。
+
 ## OAuth アプリ
 
 ログイン用の OAuth アプリは作成済みです。本番のシークレットを開発者の手元に置かないよう、開発用と本番用を分けています。開発用のクライアント ID とシークレットはチームの管理者からもらい、`apps/api/.dev.vars` に書きます。Git、Issue、チャットには貼りません。

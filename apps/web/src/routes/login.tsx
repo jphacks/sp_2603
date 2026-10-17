@@ -30,7 +30,7 @@ function LoginPage() {
   };
 
   return (
-    <section className="mx-auto max-w-sm space-y-4">
+    <section className="mx-auto flex h-full max-w-sm flex-col justify-center gap-4 px-4">
       <h1 className="text-2xl font-bold">ログイン</h1>
       {providers.map(({ id, label }) => (
         <button

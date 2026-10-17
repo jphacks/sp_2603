@@ -64,7 +64,9 @@ function TodosPage() {
 
 ## UI
 
-- UI ライブラリはまだ決めていない。ユーザーの指示なしに追加せず、Tailwind のユーティリティで書く。
+- 部品は shadcn/ui を使う。必要な部品は `pnpm --filter @fllooat/web exec shadcn add <名前>` で `src/components/ui/` に追加する。
+- アニメーションは `motion` (`import { motion } from "motion/react"`) で書く。
+- ほかの UI ライブラリはユーザーの指示なしに追加しない。
 
 ## API がまだない場合
 
