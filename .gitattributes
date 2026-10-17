@@ -1,0 +1,21 @@
+* text=auto eol=lf
+*.cmd text eol=crlf
+
+# Generated files: collapsed in GitHub diffs
+packages/api-client/openapi.json linguist-generated=true
+packages/api-client/src/generated/** linguist-generated=true
+apps/web/src/routeTree.gen.ts linguist-generated=true
+apps/web/public/mockServiceWorker.js linguist-generated=true
+apps/api/worker-configuration.d.ts linguist-generated=true
+apps/api/drizzle/meta/** linguist-generated=true
+pnpm-lock.yaml linguist-generated=true
+
+# Third-party skills installed by the skills CLI: excluded from language stats and collapsed in diffs
+.claude/skills/** linguist-vendored=true linguist-generated=true
+skills-lock.json linguist-generated=true
+# Project-owned skills stay visible
+.claude/skills/add-api-endpoint/** -linguist-vendored -linguist-generated
+.claude/skills/add-page/** -linguist-vendored -linguist-generated
+.claude/skills/change-db-schema/** -linguist-vendored -linguist-generated
+.claude/skills/write-tests/** -linguist-vendored -linguist-generated
+apps/api/src/db/auth-schema.ts linguist-generated=true

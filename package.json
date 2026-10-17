@@ -1,0 +1,29 @@
+{
+  "name": "sp-2603",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.5.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter \"./apps/*\" --parallel dev",
+    "dev:web": "pnpm --filter @sp-2603/web dev",
+    "dev:mock": "pnpm --filter @sp-2603/web dev:mock",
+    "dev:api": "pnpm --filter @sp-2603/api dev",
+    "gen": "pnpm --filter @sp-2603/api gen:openapi && pnpm --filter @sp-2603/api-client gen",
+    "check": "biome check --write .",
+    "lint": "biome ci .",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm --filter @sp-2603/web build",
+    "db:generate": "pnpm --filter @sp-2603/api db:generate",
+    "db:migrate:local": "pnpm --filter @sp-2603/api db:migrate:local",
+    "db:migrate:remote": "pnpm --filter @sp-2603/api db:migrate:remote",
+    "cf:deploy": "pnpm build && pnpm --filter @sp-2603/api run deploy",
+    "test": "pnpm -r --if-present test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "typescript": "^7.0.2"
+  }
+}
