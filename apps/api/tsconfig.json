@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["./worker-configuration.d.ts", "node"]
+  },
+  "include": [
+    "src",
+    "scripts",
+    "drizzle.config.ts",
+    "auth.cli.ts",
+    "vitest.config.ts",
+    "worker-configuration.d.ts"
+  ]
+}
