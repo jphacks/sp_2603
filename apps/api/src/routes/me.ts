@@ -1,11 +1,22 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { errorResponse } from "../lib/errors";
+import { createDb } from "../db/client";
+import { errorBody, errorResponse } from "../lib/errors";
+import {
+  dropAllTasks,
+  getMyStatus,
+  insertTaskWithinLimit,
+  isInHistory,
+  reloadTaskWithinLimit,
+  selectHistory,
+  touchStatus,
+} from "../lib/my-status";
 import {
   authRequired,
   defaultHook,
   unauthorizedResponse,
   validationErrorResponse,
 } from "../lib/openapi";
+import { findMyRoomId } from "../lib/rooms";
 import {
   DroppedTaskSchema,
   MyStatusSchema,
@@ -33,7 +44,7 @@ const myStatusResponse = (description: string) => ({
 
 const weightLimitExceededResponse = {
   409: errorResponse("重さの合計が 100% を超える (WEIGHT_LIMIT_EXCEEDED)"),
-} as const;
+};
 
 const getMe = createRoute({
   method: "get",
@@ -147,33 +158,60 @@ const reloadMyTask = createRoute({
   },
 });
 
-// TODO: DB ができたら実装する。今はフロントが hooks をつなげるように仮の値を返す。
-const emptyStatus = () => ({
-  busy: 0,
-  remaining: 100,
-  statusUpdatedAt: new Date().toISOString(),
-  tasks: [],
-});
+const weightLimitExceeded = (remaining: number) =>
+  errorBody("WEIGHT_LIMIT_EXCEEDED", `Only ${remaining}% more can be added`, { remaining });
 
 export const meRoutes = new OpenAPIHono<AuthedEnv>({ defaultHook })
-  .openapi(getMe, (c) => {
+  .openapi(getMe, async (c) => {
     const { id, name, image } = c.get("user");
-    return c.json({ user: { id, name, image: image ?? null }, roomId: null }, 200);
+    const roomId = await findMyRoomId(createDb(c.env.DB), id);
+    return c.json({ user: { id, name, image: image ?? null }, roomId }, 200);
   })
-  .openapi(getMyTasks, (c) => c.json(emptyStatus(), 200))
-  .openapi(addMyTask, (c) => {
+  .openapi(getMyTasks, async (c) =>
+    c.json(await getMyStatus(createDb(c.env.DB), c.get("user")), 200),
+  )
+  .openapi(addMyTask, async (c) => {
+    const db = createDb(c.env.DB);
+    const user = c.get("user");
     const { title, weight } = c.req.valid("json");
-    const now = new Date().toISOString();
-    return c.json(
-      {
-        busy: weight,
-        remaining: 100 - weight,
-        statusUpdatedAt: now,
-        tasks: [{ id: 1, title, weight, createdAt: now }],
-      },
-      201,
-    );
+    const now = new Date();
+
+    if (!(await insertTaskWithinLimit(db, { userId: user.id, title, weight, now }))) {
+      const { remaining } = await getMyStatus(db, user);
+      return c.json(weightLimitExceeded(remaining), 409);
+    }
+    await touchStatus(db, user.id, now);
+    return c.json(await getMyStatus(db, user), 201);
   })
-  .openapi(dropMyTasks, (c) => c.json(emptyStatus(), 200))
-  .openapi(getMyHistory, (c) => c.json({ tasks: [] }, 200))
-  .openapi(reloadMyTask, (c) => c.json(emptyStatus(), 200));
+  .openapi(dropMyTasks, async (c) => {
+    const db = createDb(c.env.DB);
+    const user = c.get("user");
+    await dropAllTasks(db, user.id, new Date());
+    return c.json(await getMyStatus(db, user), 200);
+  })
+  .openapi(getMyHistory, async (c) => {
+    const rows = await selectHistory(createDb(c.env.DB), c.get("user").id);
+    // state = 'dropped' の行は CHECK 制約で dropped_at を必ず持つ。
+    const tasks = rows.map(({ droppedAt, ...row }) => ({
+      ...row,
+      droppedAt: (droppedAt as Date).toISOString(),
+    }));
+    return c.json({ tasks }, 200);
+  })
+  .openapi(reloadMyTask, async (c) => {
+    const db = createDb(c.env.DB);
+    const user = c.get("user");
+    const { taskId } = c.req.valid("param");
+    const { weight } = c.req.valid("json");
+    const now = new Date();
+
+    if (!(await reloadTaskWithinLimit(db, { userId: user.id, taskId, weight, now }))) {
+      if (!(await isInHistory(db, user.id, taskId))) {
+        return c.json(errorBody("TASK_NOT_FOUND", "The task is not in your history"), 404);
+      }
+      const { remaining } = await getMyStatus(db, user);
+      return c.json(weightLimitExceeded(remaining), 409);
+    }
+    await touchStatus(db, user.id, now);
+    return c.json(await getMyStatus(db, user), 200);
+  });

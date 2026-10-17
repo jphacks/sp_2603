@@ -13,11 +13,11 @@ export const authRequired = {
 
 export const unauthorizedResponse = {
   401: errorResponse("ログインしていない (UNAUTHORIZED)"),
-} as const;
+};
 
 export const validationErrorResponse = {
   400: errorResponse("入力の形が正しくない (VALIDATION_ERROR)"),
-} as const;
+};
 
 // ルーターを作るときに `new OpenAPIHono<AuthedEnv>({ defaultHook })` と渡す。
 // zod の検証に落ちた入力を、ほかのエラーと同じ形の 400 で返す。

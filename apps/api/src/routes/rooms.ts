@@ -1,11 +1,22 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { errorResponse } from "../lib/errors";
+import { createDb } from "../db/client";
+import { errorBody, errorResponse } from "../lib/errors";
+import { selectOnBoardTasks, toTaskResponse } from "../lib/my-status";
 import {
   authRequired,
   defaultHook,
   unauthorizedResponse,
   validationErrorResponse,
 } from "../lib/openapi";
+import {
+  checkRoomAccess,
+  createAndJoinRoom,
+  enterRoom,
+  findRoomMember,
+  listRoomMembers,
+  roomExists,
+  toMemberProfile,
+} from "../lib/rooms";
 import { MemberDetailSchema, RoomIdParamsSchema, RoomIdSchema, RoomSchema } from "../lib/schemas";
 import type { AuthedEnv } from "../types";
 
@@ -13,7 +24,7 @@ const JoinedRoomSchema = z.object({ roomId: RoomIdSchema }).openapi("JoinedRoom"
 
 const notRoomMemberResponse = {
   403: errorResponse("そのルームのメンバーではない (NOT_ROOM_MEMBER)"),
-} as const;
+};
 
 const createRoom = createRoute({
   method: "post",
@@ -95,36 +106,71 @@ const getRoomMember = createRoute({
   },
 });
 
-// TODO: DB ができたら実装する。今はフロントが hooks をつなげるように仮の値を返す。
+const accessError = (code: "NOT_ROOM_MEMBER" | "ROOM_NOT_FOUND") =>
+  code === "NOT_ROOM_MEMBER"
+    ? ({ body: errorBody(code, "You are not a member of this room"), status: 403 } as const)
+    : ({ body: errorBody(code, "The room does not exist"), status: 404 } as const);
+
 export const roomRoutes = new OpenAPIHono<AuthedEnv>({ defaultHook })
-  .openapi(createRoom, (c) => c.json({ roomId: "012345" }, 201))
-  .openapi(joinRoom, (c) => c.json({ roomId: c.req.valid("param").roomId }, 200))
-  .openapi(getRoom, (c) => {
-    const { id, name, image } = c.get("user");
-    const now = new Date().toISOString();
+  .openapi(createRoom, async (c) => {
+    const roomId = await createAndJoinRoom(createDb(c.env.DB), c.get("user").id, new Date());
+    if (roomId === null) {
+      return c.json(errorBody("ROOM_ID_EXHAUSTED", "Could not find an unused room ID"), 503);
+    }
+    return c.json({ roomId }, 201);
+  })
+  .openapi(joinRoom, async (c) => {
+    const db = createDb(c.env.DB);
+    const userId = c.get("user").id;
+    const { roomId } = c.req.valid("param");
+
+    // ID があるかを確かめる前に数えるので、ない ID を総当たりしても回数に入る。
+    const { success } = await c.env.JOIN_RATE_LIMITER.limit({ key: userId });
+    if (!success) return c.json(errorBody("RATE_LIMITED", "Too many attempts to join"), 429);
+    if (!(await roomExists(db, roomId))) {
+      return c.json(errorBody("ROOM_NOT_FOUND", "The room does not exist"), 404);
+    }
+    await enterRoom(db, userId, roomId, new Date());
+    return c.json({ roomId }, 200);
+  })
+  .openapi(getRoom, async (c) => {
+    const db = createDb(c.env.DB);
+    const userId = c.get("user").id;
+    const { roomId } = c.req.valid("param");
+
+    const denied = await checkRoomAccess(db, userId, roomId);
+    if (denied === "NOT_ROOM_MEMBER") return c.json(accessError(denied).body, 403);
+    if (denied === "ROOM_NOT_FOUND") return c.json(accessError(denied).body, 404);
+    const members = await listRoomMembers(db, roomId);
     return c.json(
       {
-        roomId: c.req.valid("param").roomId,
-        serverTime: now,
-        members: [
-          { userId: id, name, image: image ?? null, busy: 0, statusUpdatedAt: now, isMe: true },
-        ],
+        roomId,
+        serverTime: new Date().toISOString(),
+        members: members.map((member) => ({
+          ...toMemberProfile(member),
+          isMe: member.userId === userId,
+        })),
       },
       200,
     );
   })
-  .openapi(getRoomMember, (c) => {
-    const { id, name, image } = c.get("user");
-    const now = new Date().toISOString();
+  .openapi(getRoomMember, async (c) => {
+    const db = createDb(c.env.DB);
+    const { roomId, userId } = c.req.valid("param");
+
+    const denied = await checkRoomAccess(db, c.get("user").id, roomId);
+    if (denied === "NOT_ROOM_MEMBER") return c.json(accessError(denied).body, 403);
+    // 自分がいたルームが消えることはないので、ROOM_NOT_FOUND はその人もいないものとして扱う。
+    const member = denied === null ? await findRoomMember(db, roomId, userId) : undefined;
+    if (member === undefined) {
+      return c.json(errorBody("MEMBER_NOT_FOUND", "The user is not in this room"), 404);
+    }
+    const tasks = await selectOnBoardTasks(db, userId);
     return c.json(
       {
-        userId: c.req.valid("param").userId,
-        name: c.req.valid("param").userId === id ? name : "Member",
-        image: c.req.valid("param").userId === id ? (image ?? null) : null,
-        busy: 0,
-        statusUpdatedAt: now,
-        serverTime: now,
-        tasks: [],
+        ...toMemberProfile(member),
+        serverTime: new Date().toISOString(),
+        tasks: tasks.map(toTaskResponse),
       },
       200,
     );
