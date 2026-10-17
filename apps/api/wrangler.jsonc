@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "fllooat",
+  // Cloudflare アカウント mofumofupop。複数のアカウントにログインしていても、ここにだけデプロイされる。
+  "account_id": "211e40aecb7e11abd3a8ba4db1225106",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-17",
   "compatibility_flags": ["nodejs_compat"],
