@@ -75,6 +75,7 @@ Readme · MD
 
 * スマホを振る動きと、指で気球を左右に揺らす動きを、同じ仕組みで「振った」と判定する処理。強い動きの向きが 1 秒以内に 4 回入れ替わったら振ったとみなすので、軽く触れたりスクロールしかけたりしただけではタスクが落ちない。センサーのない PC でも、気球をドラッグして揺らせば同じ操作ができる。([shake-detector.ts](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/lib/shake-detector.ts)、[use-device-shake.ts](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/hooks/use-device-shake.ts)、[4119ea6](https://github.com/jphacks/sp_2603/commit/4119ea6eb660df67fe3dfa3649be7ebd9cb9983b))
 * 自分を真ん中に置き、右に次に入った人、左に前に入った人を並べて、端まで行くと最初に戻る気球の並び。画面の幅に合わせて列の数が増え、人数が少なくても途切れずにループする。([balloon-ring.ts](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/lib/balloon-ring.ts)、[balloon-sky.tsx](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/components/balloon-sky.tsx)、[d2b7ef4](https://github.com/jphacks/sp_2603/commit/d2b7ef4fe60aeb8ef6b12c39faf34fed846b20d6))
+* 左右にスクロールできることに気付いてもらうための動き。ルームを開いて 1.5 秒たったら、気球の並びを左右に 1 回ずつ少しずらし、画面の外にいる両隣の人をちらっと見せる。全員が 1 画面に収まるときや、先に画面を触ったとき、端末で動きを減らす設定にしているときは動かさない。([balloon-sky.tsx](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/components/balloon-sky.tsx)、[513360d](https://github.com/jphacks/sp_2603/commit/513360de606c2aae245e3ce8fab76e936e314cf4))
 * メンバーごとの気球の色を、ルームとユーザーから決める処理。どの端末で見ても同じ色になり、隣どうしは同じ系統の色にならない。後から人が入っても、先にいた人の色はほとんど変わらない。([balloon-colors.ts](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/lib/balloon-colors.ts)、[399dae8](https://github.com/jphacks/sp_2603/commit/399dae87a37fe25ed5383dfd54a748cab486c5a0))
 
 ##### バックエンド
