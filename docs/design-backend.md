@@ -16,7 +16,7 @@
 | --- | --- |
 | タスクの状態 | `on` / `dropped` から `pool` / `on` にする。落としたタスクの履歴はなくす |
 | 新しいタスク | 気球ではなくプールに作る。100% の判定は、プールから気球に乗せるときに行う |
-| プールのタスク | 消す API を足す。編集は MVP では作らない |
+| タスクを消す | 1 つずつ消す API を足す。プールのタスクも、乗っているタスクも消せる。編集は MVP では作らない |
 | 振り落とし | 落としたタスクは履歴に残さず消す |
 | 履歴の API | `GET /api/me/history` と `POST /api/me/history/{taskId}/reload` を消す |
 | 最終更新 | 「経過時間による遠近」をやめ、最後に画面を開いていた時刻 (`last_seen_at`) に置き換える |
@@ -117,7 +117,7 @@ RETURNING *;
 | GET | `/api/me/tasks` | 自分の状態 (`MyStatus`) | 変更 |
 | POST | `/api/me/tasks` | プールにタスクを作る | 変更 |
 | POST | `/api/me/tasks/{taskId}/load` | プールのタスクを気球に乗せる | 追加 |
-| DELETE | `/api/me/tasks/{taskId}` | プールのタスクを消す | 追加 |
+| DELETE | `/api/me/tasks/{taskId}` | タスクを 1 つ消す | 追加 |
 | POST | `/api/me/tasks/drop` | 乗っているタスクを全部落とす | |
 | GET | `/api/me/history` | | 削除 |
 | POST | `/api/me/history/{taskId}/reload` | | 削除 |
@@ -140,12 +140,12 @@ RETURNING *;
 
 - `POST /api/me/tasks`: 本文は今と同じ `{ "title", "weight" }`。プールに作るので 100% の判定はせず、201 で `MyStatus` を返す。
 - `POST /api/me/tasks/{taskId}/load`: 本文なし。200 で `MyStatus` を返す。自分のプールにないタスクなら 404 (`TASK_NOT_FOUND`)、合計が 100% を超えるなら 409 (`WEIGHT_LIMIT_EXCEEDED`、`details.remaining` 付き)。
-- `DELETE /api/me/tasks/{taskId}`: プールのタスクを消し、200 で `MyStatus` を返す。自分のプールにないタスク (乗っているタスクや他人のタスク) なら 404 (`TASK_NOT_FOUND`)。乗っているタスクは振り落としでだけ消える。
+- `DELETE /api/me/tasks/{taskId}`: 自分のタスクを 1 つ消し、200 で `MyStatus` を返す。プールにあっても、乗っていても消せる。乗っているタスクを消すと、その分だけ忙しさが減る。他人のタスクや存在しないタスクなら 404 (`TASK_NOT_FOUND`)。
 - `POST /api/me/tasks/drop`: 0 件でも成功にする点は今と同じ。最終更新はもう持たないので、何も書き込まずに `MyStatus` を返す。
 - `GET /api/rooms/{roomId}`: 各メンバーの `statusUpdatedAt` を `isAway` (boolean) に置き換え、`serverTime` を消す。呼んだ人の `last_seen_at` を更新する。
 - `GET /api/rooms/{roomId}/members/{userId}`: `statusUpdatedAt` と `serverTime` を `isAway` に置き換える。`tasks` は `loaded_at` の新しい順。
 
-エラーの形 (`{ code, message, details? }`) と `code` の一覧は今と同じです。`TASK_NOT_FOUND` は「自分のプールにない」という意味に変わります。
+エラーの形 (`{ code, message, details? }`) と `code` の一覧は今と同じです。`TASK_NOT_FOUND` の意味は、乗せる API では「自分のプールにない」、消す API では「自分のタスクにない」に変わります。
 
 ## テスト
 
@@ -157,7 +157,8 @@ RETURNING *;
 - 乗っているタスクや他人のタスクは乗せられない
 - 振り落としたタスクは気球からもプールからも消える
 - プールのタスクは消せる
-- 乗っているタスクや他人のタスクは、消す API では消せない
+- 乗っているタスクを 1 つ消すと、そのタスクだけが消えて忙しさが減る
+- 他人のタスクは消せない
 - ルームの情報を取ると、自分は離れていない扱いになる
 - しきい値より長く開いていない人は、離れている扱いになる
 
