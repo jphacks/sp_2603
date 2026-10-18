@@ -52,16 +52,20 @@ Readme · MD
 ## 開発技術
 ### 活用した技術
 #### API・データ
-* 
-* 
+* Cloudflare Workers (API と画面の配信を 1 つの Worker で行う)
+* Cloudflare D1 (ルーム、メンバー、タスクを保存するデータベース)
+* Google OAuth、GitHub OAuth (ログイン)
+* DeviceMotion API (スマホを振る動きの検知)
+* Web App Manifest (ホーム画面に追加してアプリのように使う)
 
 #### フレームワーク・ライブラリ・モジュール
-* 
-* 
+* フロントエンド: React 19、Vite、TanStack Router、TanStack Query、Tailwind CSS v4、shadcn/ui (Radix UI)、Motion、Embla Carousel
+* バックエンド: Hono、@hono/zod-openapi、Zod、Drizzle ORM、Better Auth
+* API クライアントの生成とモック: Orval、MSW、Faker
+* 開発環境: TypeScript 7、pnpm workspaces、Biome、Vitest (@cloudflare/vitest-plugin)、Wrangler、GitHub Actions
 
 #### デバイス
-* 
-* 
+ブラウザーが使えるデバイス全対応
 
 ### 独自技術
 #### ハッカソンで開発した独自機能・技術
@@ -69,6 +73,10 @@ Readme · MD
 * 特に力を入れた部分をファイルリンク、またはcommit_idを記載してください。
 
 ##### フロントエンド
+
+* スマホを振る動きと、指で気球を左右に揺らす動きを、同じ仕組みで「振った」と判定する処理。強い動きの向きが 1 秒以内に 4 回入れ替わったら振ったとみなすので、軽く触れたりスクロールしかけたりしただけではタスクが落ちない。センサーのない PC でも、気球をドラッグして揺らせば同じ操作ができる。([shake-detector.ts](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/lib/shake-detector.ts)、[use-device-shake.ts](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/hooks/use-device-shake.ts)、[4119ea6](https://github.com/jphacks/sp_2603/commit/4119ea6eb660df67fe3dfa3649be7ebd9cb9983b))
+* 自分を真ん中に置き、右に次に入った人、左に前に入った人を並べて、端まで行くと最初に戻る気球の並び。画面の幅に合わせて列の数が増え、人数が少なくても途切れずにループする。([balloon-ring.ts](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/lib/balloon-ring.ts)、[balloon-sky.tsx](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/components/balloon-sky.tsx)、[d2b7ef4](https://github.com/jphacks/sp_2603/commit/d2b7ef4fe60aeb8ef6b12c39faf34fed846b20d6))
+* メンバーごとの気球の色を、ルームとユーザーから決める処理。どの端末で見ても同じ色になり、隣どうしは同じ系統の色にならない。後から人が入っても、先にいた人の色はほとんど変わらない。([balloon-colors.ts](https://github.com/jphacks/sp_2603/blob/main/apps/web/src/lib/balloon-colors.ts)、[399dae8](https://github.com/jphacks/sp_2603/commit/399dae87a37fe25ed5383dfd54a748cab486c5a0))
 
 ##### バックエンド
 
