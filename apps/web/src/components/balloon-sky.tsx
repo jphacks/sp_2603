@@ -13,7 +13,8 @@ const MIN_COLUMNS = 3;
 const TICK_COUNT = 11;
 
 // 名前の行、気球が動く範囲、% の行の高さ。目盛りを気球の範囲にそろえるため、列と目盛りで同じ値を使う。
-const NAME_ROW = "h-34";
+// ホーム画面から開くと上端がダイナミックアイランドの裏になるので、名前の行は高さを変えずに中身だけ下げる。
+const NAME_ROW = "h-34 pt-[env(safe-area-inset-top)]";
 const PERCENT_ROW = "h-28";
 const SKY_TOP = "top-34";
 const SKY_BOTTOM = "bottom-28";

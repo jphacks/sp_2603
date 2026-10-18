@@ -103,7 +103,8 @@ export function BalloonSheet({
           key="sheet"
           role="dialog"
           aria-labelledby={titleId}
-          className="absolute inset-x-0 top-[58px] bottom-0 z-40 flex flex-col items-center rounded-t-[50%_46px] bg-[#0055DD] text-[#E6E6E6]"
+          // ホーム画面から開いたときは、シートの上端をダイナミックアイランドより下に置く。
+          className="absolute inset-x-0 top-[max(58px,calc(env(safe-area-inset-top)+8px))] bottom-0 z-40 flex flex-col items-center rounded-t-[50%_46px] bg-[#0055DD] text-[#E6E6E6]"
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
