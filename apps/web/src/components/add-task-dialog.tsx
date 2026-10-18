@@ -5,12 +5,11 @@ import { Slider } from "@/components/ui/slider";
 
 const TITLE_MAX_LENGTH = 30;
 const DEFAULT_WEIGHT = 50;
+const MAX_WEIGHT = 100;
 
 type AddTaskDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** まだ乗せられる重さ (%)。スライダーの上限になる。 */
-  remaining: number;
   isPending: boolean;
   /** API が断ったときに、追加ボタンの上に出す文言。 */
   errorMessage: string | undefined;
@@ -21,7 +20,7 @@ export function AddTaskDialog({ open, onOpenChange, ...formProps }: AddTaskDialo
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <GlassDialogContent>
-        <DialogTitle className="sr-only">タスクをのせる</DialogTitle>
+        <DialogTitle className="sr-only">タスクを追加</DialogTitle>
         {/* 開くたびに入力を空に戻すため、開いている間だけ中身を作る。 */}
         {open && <AddTaskForm {...formProps} />}
       </GlassDialogContent>
@@ -29,24 +28,22 @@ export function AddTaskDialog({ open, onOpenChange, ...formProps }: AddTaskDialo
   );
 }
 
+/** プールにブロックを作るフォーム。プールには合計 100% の制限がないので、重さは 1〜100% から選べる。 */
 function AddTaskForm({
-  remaining,
   isPending,
   errorMessage,
   onAdd,
 }: Omit<AddTaskDialogProps, "open" | "onOpenChange">) {
   const [title, setTitle] = useState("");
   const [weight, setWeight] = useState(DEFAULT_WEIGHT);
-  // 残りが届く前や、ほかの端末で乗せて残りが減ったときも、スライダーの範囲に収める。
-  const clampedWeight = Math.max(1, Math.min(weight, remaining));
-  const canAdd = title.trim() !== "" && remaining > 0 && !isPending;
+  const canAdd = title.trim() !== "" && !isPending;
 
   return (
     <form
       className="grid gap-3"
       onSubmit={(event) => {
         event.preventDefault();
-        if (canAdd) onAdd(title.trim(), clampedWeight);
+        if (canAdd) onAdd(title.trim(), weight);
       }}
     >
       <label className="grid gap-2">
@@ -61,22 +58,16 @@ function AddTaskForm({
       </label>
       <div className="grid gap-3">
         <span className="text-sm font-bold">タスクの重さ</span>
-        {remaining > 0 ? (
-          <>
-            <Slider
-              min={1}
-              max={remaining}
-              step={1}
-              value={[clampedWeight]}
-              onValueChange={([value]) => value !== undefined && setWeight(value)}
-              aria-label="タスクの重さ"
-              className="py-2 **:data-[slot=slider-range]:bg-[#0A84FF] **:data-[slot=slider-thumb]:size-6 **:data-[slot=slider-thumb]:border-2 **:data-[slot=slider-thumb]:border-neutral-900 **:data-[slot=slider-track]:h-1.5 **:data-[slot=slider-track]:bg-white"
-            />
-            <span className="text-center text-sm">{clampedWeight}%</span>
-          </>
-        ) : (
-          <span className="text-sm">これ以上はのせられません</span>
-        )}
+        <Slider
+          min={1}
+          max={MAX_WEIGHT}
+          step={1}
+          value={[weight]}
+          onValueChange={([value]) => value !== undefined && setWeight(value)}
+          aria-label="タスクの重さ"
+          className="py-2 **:data-[slot=slider-range]:bg-[#0A84FF] **:data-[slot=slider-thumb]:size-6 **:data-[slot=slider-thumb]:border-2 **:data-[slot=slider-thumb]:border-neutral-900 **:data-[slot=slider-track]:h-1.5 **:data-[slot=slider-track]:bg-white"
+        />
+        <span className="text-center text-sm">{weight}%</span>
       </div>
       {errorMessage && <p className="text-sm text-red-700">{errorMessage}</p>}
       <div className="flex justify-end">

@@ -4,7 +4,6 @@ import { motion } from "motion/react";
 import { useMemo, useRef } from "react";
 import { BALLOON_ANCHOR_PX, Balloon } from "@/components/balloon";
 import { useColumnCount } from "@/hooks/use-column-count";
-import { assignBalloonColors } from "@/lib/balloon-colors";
 import { myColumnIndex, placeAroundMe, ringFromMe } from "@/lib/balloon-ring";
 import { cn } from "@/lib/utils";
 
@@ -20,21 +19,14 @@ const SKY_TOP = "top-34";
 const SKY_BOTTOM = "bottom-28";
 
 type BalloonSkyProps = {
-  roomId: string;
   members: RoomMember[];
+  /** ユーザー ID ごとの気球の色。 */
+  colors: Map<string, string>;
   onSelectMember: (member: RoomMember) => void;
   onShakeMyBalloon: () => void;
 };
 
-export function BalloonSky({ roomId, members, onSelectMember, onShakeMyBalloon }: BalloonSkyProps) {
-  const colors = useMemo(
-    () =>
-      assignBalloonColors(
-        roomId,
-        members.map((m) => m.userId),
-      ),
-    [roomId, members],
-  );
+export function BalloonSky({ members, colors, onSelectMember, onShakeMyBalloon }: BalloonSkyProps) {
   const ring = ringFromMe(members);
   const containerRef = useRef<HTMLDivElement>(null);
   const columns = useColumnCount(containerRef, {
@@ -150,6 +142,7 @@ function SkyColumn({
             name={member.name}
             image={member.image}
             color={color}
+            busy={member.busy}
             isAway={member.isAway}
             onTap={() => onSelect(member)}
             onShake={member.isMe ? onShake : undefined}

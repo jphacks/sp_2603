@@ -1,14 +1,19 @@
 import { motion } from "motion/react";
 import { useMemo } from "react";
+import { BalloonFigure } from "@/components/balloon-figure";
 import { createShakeDetector, DRAG_SHAKE } from "@/lib/shake-detector";
 
+/** 空の画面での風船の直径。 */
+const ENVELOPE_SIZE_PX = 48;
 /** 気球の上端からアイコンの中心までの距離。高さの目盛りにアイコンの中心を合わせるのに使う。 */
-export const BALLOON_ANCHOR_PX = 24;
+export const BALLOON_ANCHOR_PX = ENVELOPE_SIZE_PX / 2;
 
 type BalloonProps = {
   name: string;
   image: string | null;
   color: string;
+  /** 忙しさ (0〜100)。籠の大きさに使う。 */
+  busy: number;
   /** 離れている人の気球とアイコンはグレースケールにする。大きさと濃さは変えない。 */
   isAway: boolean;
   onTap: () => void;
@@ -16,7 +21,7 @@ type BalloonProps = {
   onShake?: () => void;
 };
 
-export function Balloon({ name, image, color, isAway, onTap, onShake }: BalloonProps) {
+export function Balloon({ name, image, color, busy, isAway, onTap, onShake }: BalloonProps) {
   const feed = useMemo(() => onShake && createShakeDetector(DRAG_SHAKE, onShake), [onShake]);
 
   return (
@@ -35,7 +40,7 @@ export function Balloon({ name, image, color, isAway, onTap, onShake }: BalloonP
           aria-label={`${name}の気球`}
           // embla はこの属性がある要素の上で始まったドラッグではスクロールしない。
           data-shakeable={feed ? "" : undefined}
-          className="flex flex-col items-center outline-none"
+          className="block outline-none"
           style={feed && { touchAction: "none" }}
           drag={feed ? "x" : false}
           dragSnapToOrigin
@@ -43,18 +48,7 @@ export function Balloon({ name, image, color, isAway, onTap, onShake }: BalloonP
           onDrag={(_, info) => feed?.(info.velocity.x)}
           onTap={onTap}
         >
-          <span
-            className="block size-12 overflow-hidden rounded-full border-[3px]"
-            style={{ borderColor: color, backgroundColor: color }}
-          >
-            {image && (
-              <img src={image} alt="" className="size-full object-cover" draggable={false} />
-            )}
-          </span>
-          <svg viewBox="0 0 30 10" className="-mt-0.5 h-2.5 w-[30px]" aria-hidden="true">
-            <path d="M9 0 L3 10 M21 0 L27 10" className="stroke-white" strokeWidth="1.5" />
-          </svg>
-          <span className="block h-[18px] w-[30px] rounded-[3px] rounded-b-md bg-[#7A2E14]" />
+          <BalloonFigure size={ENVELOPE_SIZE_PX} image={image} color={color} busy={busy} />
         </motion.button>
       </motion.div>
     </motion.div>
