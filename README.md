@@ -80,6 +80,10 @@ Readme · MD
 
 ##### バックエンド
 
+* 気球に乗せるタスクの重さの合計を 100% までに抑える処理。D1 では読んでから書くまでを 1 つのトランザクションにできないので、合計の判定と書き込みを 1 つの SQL 文にまとめた。2 台の端末から同時に乗せても、合計が 100% を超えることはない。([my-status.ts](https://github.com/jphacks/sp_2603/blob/main/apps/api/src/lib/my-status.ts)、[6574871](https://github.com/jphacks/sp_2603/commit/6574871c4dffc416bd0d5eddba607054b2a7fdc8))
+* しばらく画面を開いていない人を見分け、気球をグレーにするための処理。画面は 3 秒ごとにルームの情報を取り直すので、そのたびに最後に開いた時刻を書くと、数人で D1 の無料枠 (1 日 10 万行の書き込み) を超えてしまう。前回から 1 分以上たったときだけ書くようにして、書き込みを 20 分の 1 に減らした。何分で離れたとみなすかは Cloudflare のダッシュボードで変えられるので、コードを変えずに調整できる。([rooms.ts](https://github.com/jphacks/sp_2603/blob/main/apps/api/src/lib/rooms.ts)、[6574871](https://github.com/jphacks/sp_2603/commit/6574871c4dffc416bd0d5eddba607054b2a7fdc8)、[870eb64](https://github.com/jphacks/sp_2603/commit/870eb64895f71fd0f4bdb511bc4eb1dc61d8c6a2))
+* 6 桁の ID で入れるルームの管理。ID は乱数で作り、使われている ID と重なったら作り直す。他人のルームの ID を総当たりで探されないよう、入室は 1 人 1 分に 10 回までにした。全員が抜けたルームは消して、その ID をほかのルームで使えるようにしている。([rooms.ts](https://github.com/jphacks/sp_2603/blob/main/apps/api/src/lib/rooms.ts)、[a128054](https://github.com/jphacks/sp_2603/commit/a128054b1a14f7dee5db057b748c7eeaaa8360ae)、[f93c14b](https://github.com/jphacks/sp_2603/commit/f93c14b3d07c022174736b72812973fcc18d920f))
+
 ##### その他
 
 * API の型を zod のスキーマ 1 か所にまとめ、`pnpm gen` で OpenAPI の定義、TanStack Query の hooks、型、MSW のモックまで生成する仕組み。フロントエンド班は API の完成を待たずに、モックを相手に画面を作り進められる。生成し忘れたまま push しても、CI で気付ける。([gen-openapi.ts](https://github.com/jphacks/sp_2603/blob/main/apps/api/scripts/gen-openapi.ts)、[orval.config.ts](https://github.com/jphacks/sp_2603/blob/main/packages/api-client/orval.config.ts)、[ea2bf38](https://github.com/jphacks/sp_2603/commit/ea2bf38a056784f2b9ef9b7af6e2c7cb2dd926c5))
