@@ -10,9 +10,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 // 気球の空を画面いっぱいに描くので、共通のヘッダーや幅の制限は置かない。
+// ホーム画面から開いた iPhone では h-dvh がステータスバーの分だけ短くなり、下に白い帯が出るので、fixed で画面に合わせる。
 function RootLayout() {
   return (
-    <div className="h-dvh overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden">
       <Outlet />
       <ReactQueryDevtools buttonPosition="bottom-left" />
       <TanStackRouterDevtools position="bottom-right" />
