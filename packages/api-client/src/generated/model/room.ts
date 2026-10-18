@@ -12,7 +12,6 @@ export interface Room {
      * @pattern ^\d{6}$
      */
   roomId: string;
-  serverTime: string;
   /** メンバー。自分を含めて入室順 */
   members: RoomMember[];
 }

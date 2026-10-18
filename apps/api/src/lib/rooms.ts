@@ -1,4 +1,4 @@
-import { and, asc, eq, notExists, sql } from "drizzle-orm";
+import { and, asc, eq, lt, notExists, sql } from "drizzle-orm";
 import type { createDb } from "../db/client";
 import { room, roomMember, task, user, userStatus } from "../db/schema";
 
@@ -42,8 +42,8 @@ const joinStatements = (db: Db, userId: string, roomId: string, now: Date) =>
         set: { roomId: sql`excluded.room_id`, joinedAt: sql`excluded.joined_at` },
         setWhere: sql`${roomMember.roomId} <> excluded.room_id`,
       }),
-    // 最終更新は人に付くので、ルームを移っただけでは変えない。
-    db.insert(userStatus).values({ userId, updatedAt: now }).onConflictDoNothing(),
+    // 最後に画面を開いていた時刻は人に付くので、ルームを移っただけでは変えない。
+    db.insert(userStatus).values({ userId, lastSeenAt: now }).onConflictDoNothing(),
     deleteEmptyRooms(db),
   ] as const;
 
@@ -108,7 +108,7 @@ const memberColumns = {
   name: user.name,
   image: user.image,
   joinedAt: roomMember.joinedAt,
-  statusUpdatedAt: userStatus.updatedAt,
+  lastSeenAt: userStatus.lastSeenAt,
   busy: sql<number>`(select coalesce(sum(${task.weight}), 0) from ${task} where ${task.userId} = ${user.id} and ${task.state} = 'on')`.mapWith(
     Number,
   ),
@@ -123,11 +123,38 @@ const selectMembers = (db: Db) =>
 
 type MemberRow = Awaited<ReturnType<ReturnType<typeof selectMembers>["all"]>>[number];
 
-export const toMemberProfile = ({ joinedAt, statusUpdatedAt, ...row }: MemberRow) => ({
+const DEFAULT_AWAY_THRESHOLD_MINUTES = 180;
+
+/** 離れているとみなすまでの時間 (ミリ秒)。環境変数 AWAY_THRESHOLD_MINUTES の値が数でなければ 3 時間にする。 */
+export const awayThresholdMs = (env: Pick<Env, "AWAY_THRESHOLD_MINUTES">) => {
+  const minutes = Number(env.AWAY_THRESHOLD_MINUTES);
+  return (Number.isFinite(minutes) ? minutes : DEFAULT_AWAY_THRESHOLD_MINUTES) * 60_000;
+};
+
+/** 端末の時計がずれていても結果が変わらないよう、離れているかはサーバーの時計で決める。 */
+export const toMemberProfile = (
+  { joinedAt, lastSeenAt, ...row }: MemberRow,
+  { now, awayThresholdMs }: { now: Date; awayThresholdMs: number },
+) => ({
   ...row,
-  // 最終更新の行は入室のときに作るので、ない場合はふつう起きない。念のため入室日時で埋める。
-  statusUpdatedAt: (statusUpdatedAt ?? joinedAt).toISOString(),
+  // user_status の行は入室のときに作るので、ない場合はふつう起きない。念のため入室日時で埋める。
+  isAway: now.getTime() - (lastSeenAt ?? joinedAt).getTime() >= awayThresholdMs,
 });
+
+// ポーリングのたびに書くと D1 の書き込みの無料枠を超えるので、前回から 1 分以上たったときだけ書く。
+const LAST_SEEN_WRITE_INTERVAL_MS = 60_000;
+
+/** 最後に画面を開いていた時刻を今にする。 */
+export const touchLastSeen = (db: Db, userId: string, now: Date) =>
+  db
+    .update(userStatus)
+    .set({ lastSeenAt: now })
+    .where(
+      and(
+        eq(userStatus.userId, userId),
+        lt(userStatus.lastSeenAt, new Date(now.getTime() - LAST_SEEN_WRITE_INTERVAL_MS)),
+      ),
+    );
 
 /** ルームのメンバーを入室順に返す。 */
 export const listRoomMembers = (db: Db, roomId: string) =>

@@ -14,5 +14,6 @@ export interface Task {
      * @maximum 100
      */
   weight: number;
-  createdAt: string;
+  /** 気球に乗せた日時 */
+  loadedAt: string;
 }

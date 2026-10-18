@@ -147,23 +147,26 @@
             "description": "あと何 % まで乗せられるか",
             "example": 40
           },
-          "statusUpdatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
           "tasks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Task"
             },
-            "description": "乗っているタスク。乗せた日時の新しい順"
+            "description": "気球に乗っているタスク。乗せた日時の新しい順"
+          },
+          "pool": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PoolTask"
+            },
+            "description": "プールにあるタスク。作った日時の新しい順"
           }
         },
         "required": [
           "busy",
           "remaining",
-          "statusUpdatedAt",
-          "tasks"
+          "tasks",
+          "pool"
         ]
       },
       "Task": {
@@ -184,9 +187,41 @@
             "description": "タスクの重さ (%)",
             "example": 30
           },
+          "loadedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "気球に乗せた日時"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "weight",
+          "loadedAt"
+        ]
+      },
+      "PoolTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 12
+          },
+          "title": {
+            "type": "string",
+            "example": "API の実装"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "タスクの重さ (%)",
+            "example": 30
+          },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "プールに作った日時"
           }
         },
         "required": [
@@ -218,65 +253,6 @@
           "weight"
         ]
       },
-      "History": {
-        "type": "object",
-        "properties": {
-          "tasks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DroppedTask"
-            }
-          }
-        },
-        "required": [
-          "tasks"
-        ]
-      },
-      "DroppedTask": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "example": 9
-          },
-          "title": {
-            "type": "string",
-            "example": "デザインの確認"
-          },
-          "weight": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100,
-            "description": "タスクの重さ (%)",
-            "example": 30
-          },
-          "droppedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "weight",
-          "droppedAt"
-        ]
-      },
-      "ReloadTask": {
-        "type": "object",
-        "properties": {
-          "weight": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100,
-            "description": "タスクの重さ (%)",
-            "example": 30
-          }
-        },
-        "required": [
-          "weight"
-        ]
-      },
       "JoinedRoom": {
         "type": "object",
         "properties": {
@@ -300,10 +276,6 @@
             "description": "6 桁のルーム ID (000000 から 999999)。先頭の 0 を落とさないよう文字列で持つ",
             "example": "012345"
           },
-          "serverTime": {
-            "type": "string",
-            "format": "date-time"
-          },
           "members": {
             "type": "array",
             "items": {
@@ -314,7 +286,6 @@
         },
         "required": [
           "roomId",
-          "serverTime",
           "members"
         ]
       },
@@ -343,9 +314,9 @@
             "description": "忙しさ。乗っているタスクの重さの合計 (%)",
             "example": 60
           },
-          "statusUpdatedAt": {
-            "type": "string",
-            "format": "date-time"
+          "isAway": {
+            "type": "boolean",
+            "description": "最後に画面を開いてから、しきい値 (初期値 3 時間) より長くたっているか"
           },
           "isMe": {
             "type": "boolean"
@@ -356,7 +327,7 @@
           "name",
           "image",
           "busy",
-          "statusUpdatedAt",
+          "isAway",
           "isMe"
         ]
       },
@@ -385,20 +356,16 @@
             "description": "忙しさ。乗っているタスクの重さの合計 (%)",
             "example": 60
           },
-          "statusUpdatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "serverTime": {
-            "type": "string",
-            "format": "date-time"
+          "isAway": {
+            "type": "boolean",
+            "description": "最後に画面を開いてから、しきい値 (初期値 3 時間) より長くたっているか"
           },
           "tasks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Task"
             },
-            "description": "乗っているタスク。乗せた日時の新しい順"
+            "description": "気球に乗っているタスク。乗せた日時の新しい順"
           }
         },
         "required": [
@@ -406,8 +373,7 @@
           "name",
           "image",
           "busy",
-          "statusUpdatedAt",
-          "serverTime",
+          "isAway",
           "tasks"
         ]
       }
@@ -483,7 +449,7 @@
         ],
         "responses": {
           "200": {
-            "description": "自分の状態と乗っているタスク",
+            "description": "自分の状態と、乗っているタスクとプールのタスク",
             "content": {
               "application/json": {
                 "schema": {
@@ -526,7 +492,7 @@
         },
         "responses": {
           "201": {
-            "description": "タスクを乗せた後の自分の状態",
+            "description": "プールにタスクを作った後の自分の状態。重さの合計は確かめない",
             "content": {
               "application/json": {
                 "schema": {
@@ -554,16 +520,6 @@
                 }
               }
             }
-          },
-          "409": {
-            "description": "重さの合計が 100% を超える (WEIGHT_LIMIT_EXCEEDED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorBody"
-                }
-              }
-            }
           }
         }
       }
@@ -581,7 +537,7 @@
         ],
         "responses": {
           "200": {
-            "description": "タスクをすべて落とした後の自分の状態",
+            "description": "乗っているタスクをすべて消した後の自分の状態。プールには戻さない",
             "content": {
               "application/json": {
                 "schema": {
@@ -603,47 +559,12 @@
         }
       }
     },
-    "/api/me/history": {
-      "get": {
-        "tags": [
-          "me"
-        ],
-        "operationId": "getMyHistory",
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "落としたタスクの履歴。落とした日時の新しい順に最新 50 件",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/History"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "ログインしていない (UNAUTHORIZED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorBody"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/me/history/{taskId}/reload": {
+    "/api/me/tasks/{taskId}/load": {
       "post": {
         "tags": [
           "me"
         ],
-        "operationId": "reloadMyTask",
+        "operationId": "loadMyTask",
         "security": [
           {
             "cookieAuth": []
@@ -654,26 +575,16 @@
             "schema": {
               "type": "integer",
               "exclusiveMinimum": 0,
-              "example": 9
+              "example": 12
             },
             "required": true,
             "name": "taskId",
             "in": "path"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReloadTask"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "乗せ直した後の自分の状態",
+            "description": "プールのタスクを気球に乗せた後の自分の状態",
             "content": {
               "application/json": {
                 "schema": {
@@ -703,7 +614,7 @@
             }
           },
           "404": {
-            "description": "自分の履歴にそのタスクがない (TASK_NOT_FOUND)",
+            "description": "自分のプールにそのタスクがない (TASK_NOT_FOUND)",
             "content": {
               "application/json": {
                 "schema": {
@@ -714,6 +625,73 @@
           },
           "409": {
             "description": "重さの合計が 100% を超える (WEIGHT_LIMIT_EXCEEDED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/tasks/{taskId}": {
+      "delete": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "deleteMyTask",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "example": 12
+            },
+            "required": true,
+            "name": "taskId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "タスクを消した後の自分の状態",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "入力の形が正しくない (VALIDATION_ERROR)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "自分のタスクにそれがない (TASK_NOT_FOUND)",
             "content": {
               "application/json": {
                 "schema": {
@@ -904,7 +882,7 @@
         ],
         "responses": {
           "200": {
-            "description": "ルームのメンバーと気球の状態。数秒ごとにポーリングされる",
+            "description": "ルームのメンバーと気球の状態。数秒ごとにポーリングされる。呼んだ人が最後に画面を開いていた時刻を今にする",
             "content": {
               "application/json": {
                 "schema": {

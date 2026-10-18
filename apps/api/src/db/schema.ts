@@ -27,12 +27,12 @@ export const roomMember = sqliteTable(
   (table) => [index("room_member_room_id_joined_at_idx").on(table.roomId, table.joinedAt)],
 );
 
-// 最終更新はルームではなく人に付くので、room_member とは分けて持つ。
+// 最後に画面を開いていた時刻はルームではなく人に付くので、room_member とは分けて持つ。
 export const userStatus = sqliteTable("user_status", {
   userId: text("user_id")
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp_ms" }).notNull(),
 });
 
 export const task = sqliteTable(
@@ -45,18 +45,18 @@ export const task = sqliteTable(
     // 長さの上限は後から変えやすいように API の zod で確かめる。DB は空でないことだけを縛る。
     title: text("title").notNull(),
     weight: integer("weight").notNull(),
-    state: text("state", { enum: ["on", "dropped"] }).notNull(),
-    // 乗せた日時。履歴から乗せ直したときは上書きする。
+    // pool はプールに置いてある、on は気球に乗っている。
+    state: text("state", { enum: ["pool", "on"] }).notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-    droppedAt: integer("dropped_at", { mode: "timestamp_ms" }),
+    loadedAt: integer("loaded_at", { mode: "timestamp_ms" }),
   },
   (table) => [
-    index("task_user_id_state_dropped_at_idx").on(table.userId, table.state, table.droppedAt),
+    index("task_user_id_state_idx").on(table.userId, table.state),
     check("task_title_not_blank", sql`length(trim(title)) > 0`),
     check("task_weight_range", sql`weight between 1 and 100`),
     check(
-      "task_state_dropped_at",
-      sql`(state = 'on' and dropped_at is null) or (state = 'dropped' and dropped_at is not null)`,
+      "task_state_loaded_at",
+      sql`(state = 'pool' and loaded_at is null) or (state = 'on' and loaded_at is not null)`,
     ),
   ],
 );

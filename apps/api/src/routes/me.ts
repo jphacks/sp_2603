@@ -2,13 +2,12 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { createDb } from "../db/client";
 import { errorBody, errorResponse } from "../lib/errors";
 import {
+  deleteTask,
   dropAllTasks,
   getMyStatus,
-  insertTaskWithinLimit,
-  isInHistory,
-  reloadTaskWithinLimit,
-  selectHistory,
-  touchStatus,
+  insertPoolTask,
+  isInPool,
+  loadTaskWithinLimit,
 } from "../lib/my-status";
 import {
   authRequired,
@@ -18,9 +17,9 @@ import {
 } from "../lib/openapi";
 import { findMyRoomId } from "../lib/rooms";
 import {
-  DroppedTaskSchema,
   MyStatusSchema,
   RoomIdSchema,
+  TaskIdParamsSchema,
   TaskTitleSchema,
   WeightSchema,
 } from "../lib/schemas";
@@ -68,7 +67,7 @@ const getMyTasks = createRoute({
   operationId: "getMyTasks",
   ...authRequired,
   responses: {
-    200: myStatusResponse("自分の状態と乗っているタスク"),
+    200: myStatusResponse("自分の状態と、乗っているタスクとプールのタスク"),
     ...unauthorizedResponse,
   },
 });
@@ -90,10 +89,9 @@ const addMyTask = createRoute({
     },
   },
   responses: {
-    201: myStatusResponse("タスクを乗せた後の自分の状態"),
+    201: myStatusResponse("プールにタスクを作った後の自分の状態。重さの合計は確かめない"),
     ...validationErrorResponse,
     ...unauthorizedResponse,
-    ...weightLimitExceededResponse,
   },
 });
 
@@ -104,57 +102,39 @@ const dropMyTasks = createRoute({
   operationId: "dropMyTasks",
   ...authRequired,
   responses: {
-    200: myStatusResponse("タスクをすべて落とした後の自分の状態"),
+    200: myStatusResponse("乗っているタスクをすべて消した後の自分の状態。プールには戻さない"),
     ...unauthorizedResponse,
   },
 });
 
-const getMyHistory = createRoute({
-  method: "get",
-  path: "/me/history",
-  tags: ["me"],
-  operationId: "getMyHistory",
-  ...authRequired,
-  responses: {
-    200: {
-      description: "落としたタスクの履歴。落とした日時の新しい順に最新 50 件",
-      content: {
-        "application/json": {
-          schema: z.object({ tasks: z.array(DroppedTaskSchema) }).openapi("History"),
-        },
-      },
-    },
-    ...unauthorizedResponse,
-  },
-});
-
-const reloadMyTask = createRoute({
+const loadMyTask = createRoute({
   method: "post",
-  path: "/me/history/{taskId}/reload",
+  path: "/me/tasks/{taskId}/load",
   tags: ["me"],
-  operationId: "reloadMyTask",
+  operationId: "loadMyTask",
   ...authRequired,
-  request: {
-    params: z.object({
-      taskId: z.coerce
-        .number()
-        .int()
-        .positive()
-        .openapi({ param: { name: "taskId", in: "path" }, example: 9 }),
-    }),
-    body: {
-      required: true,
-      content: {
-        "application/json": { schema: z.object({ weight: WeightSchema }).openapi("ReloadTask") },
-      },
-    },
-  },
+  request: { params: TaskIdParamsSchema },
   responses: {
-    200: myStatusResponse("乗せ直した後の自分の状態"),
+    200: myStatusResponse("プールのタスクを気球に乗せた後の自分の状態"),
     ...validationErrorResponse,
     ...unauthorizedResponse,
-    404: errorResponse("自分の履歴にそのタスクがない (TASK_NOT_FOUND)"),
+    404: errorResponse("自分のプールにそのタスクがない (TASK_NOT_FOUND)"),
     ...weightLimitExceededResponse,
+  },
+});
+
+const deleteMyTask = createRoute({
+  method: "delete",
+  path: "/me/tasks/{taskId}",
+  tags: ["me"],
+  operationId: "deleteMyTask",
+  ...authRequired,
+  request: { params: TaskIdParamsSchema },
+  responses: {
+    200: myStatusResponse("タスクを消した後の自分の状態"),
+    ...validationErrorResponse,
+    ...unauthorizedResponse,
+    404: errorResponse("自分のタスクにそれがない (TASK_NOT_FOUND)"),
   },
 });
 
@@ -168,50 +148,43 @@ export const meRoutes = new OpenAPIHono<AuthedEnv>({ defaultHook })
     return c.json({ user: { id, name, image: image ?? null }, roomId }, 200);
   })
   .openapi(getMyTasks, async (c) =>
-    c.json(await getMyStatus(createDb(c.env.DB), c.get("user")), 200),
+    c.json(await getMyStatus(createDb(c.env.DB), c.get("user").id), 200),
   )
   .openapi(addMyTask, async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get("user");
+    const userId = c.get("user").id;
     const { title, weight } = c.req.valid("json");
-    const now = new Date();
 
-    if (!(await insertTaskWithinLimit(db, { userId: user.id, title, weight, now }))) {
-      const { remaining } = await getMyStatus(db, user);
-      return c.json(weightLimitExceeded(remaining), 409);
-    }
-    await touchStatus(db, user.id, now);
-    return c.json(await getMyStatus(db, user), 201);
+    await insertPoolTask(db, { userId, title, weight, now: new Date() });
+    return c.json(await getMyStatus(db, userId), 201);
   })
   .openapi(dropMyTasks, async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get("user");
-    await dropAllTasks(db, user.id, new Date());
-    return c.json(await getMyStatus(db, user), 200);
+    const userId = c.get("user").id;
+    await dropAllTasks(db, userId);
+    return c.json(await getMyStatus(db, userId), 200);
   })
-  .openapi(getMyHistory, async (c) => {
-    const rows = await selectHistory(createDb(c.env.DB), c.get("user").id);
-    // state = 'dropped' の行は CHECK 制約で dropped_at を必ず持つ。
-    const tasks = rows.map(({ droppedAt, ...row }) => ({
-      ...row,
-      droppedAt: (droppedAt as Date).toISOString(),
-    }));
-    return c.json({ tasks }, 200);
-  })
-  .openapi(reloadMyTask, async (c) => {
+  .openapi(loadMyTask, async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get("user");
+    const userId = c.get("user").id;
     const { taskId } = c.req.valid("param");
-    const { weight } = c.req.valid("json");
-    const now = new Date();
 
-    if (!(await reloadTaskWithinLimit(db, { userId: user.id, taskId, weight, now }))) {
-      if (!(await isInHistory(db, user.id, taskId))) {
-        return c.json(errorBody("TASK_NOT_FOUND", "The task is not in your history"), 404);
+    if (!(await loadTaskWithinLimit(db, { userId, taskId, now: new Date() }))) {
+      if (!(await isInPool(db, userId, taskId))) {
+        return c.json(errorBody("TASK_NOT_FOUND", "The task is not in your pool"), 404);
       }
-      const { remaining } = await getMyStatus(db, user);
+      const { remaining } = await getMyStatus(db, userId);
       return c.json(weightLimitExceeded(remaining), 409);
     }
-    await touchStatus(db, user.id, now);
-    return c.json(await getMyStatus(db, user), 200);
+    return c.json(await getMyStatus(db, userId), 200);
+  })
+  .openapi(deleteMyTask, async (c) => {
+    const db = createDb(c.env.DB);
+    const userId = c.get("user").id;
+    const { taskId } = c.req.valid("param");
+
+    if (!(await deleteTask(db, userId, taskId))) {
+      return c.json(errorBody("TASK_NOT_FOUND", "You have no such task"), 404);
+    }
+    return c.json(await getMyStatus(db, userId), 200);
   });

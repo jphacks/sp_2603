@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { createDb } from "../db/client";
 import { errorBody, errorResponse } from "../lib/errors";
-import { selectOnBoardTasks, toTaskResponse } from "../lib/my-status";
+import { selectOnBoardTasks } from "../lib/my-status";
 import {
   authRequired,
   defaultHook,
@@ -9,6 +9,7 @@ import {
   validationErrorResponse,
 } from "../lib/openapi";
 import {
+  awayThresholdMs,
   checkRoomAccess,
   createAndJoinRoom,
   enterRoom,
@@ -17,6 +18,7 @@ import {
   listRoomMembers,
   roomExists,
   toMemberProfile,
+  touchLastSeen,
 } from "../lib/rooms";
 import { MemberDetailSchema, RoomIdParamsSchema, RoomIdSchema, RoomSchema } from "../lib/schemas";
 import type { AuthedEnv } from "../types";
@@ -83,7 +85,8 @@ const getRoom = createRoute({
   request: { params: RoomIdParamsSchema },
   responses: {
     200: {
-      description: "ルームのメンバーと気球の状態。数秒ごとにポーリングされる",
+      description:
+        "ルームのメンバーと気球の状態。数秒ごとにポーリングされる。呼んだ人が最後に画面を開いていた時刻を今にする",
       content: { "application/json": { schema: RoomSchema } },
     },
     ...validationErrorResponse,
@@ -157,13 +160,15 @@ export const roomRoutes = new OpenAPIHono<AuthedEnv>({ defaultHook })
     const denied = await checkRoomAccess(db, userId, roomId);
     if (denied === "NOT_ROOM_MEMBER") return c.json(accessError(denied).body, 403);
     if (denied === "ROOM_NOT_FOUND") return c.json(accessError(denied).body, 404);
+    const now = new Date();
+    await touchLastSeen(db, userId, now);
     const members = await listRoomMembers(db, roomId);
+    const away = { now, awayThresholdMs: awayThresholdMs(c.env) };
     return c.json(
       {
         roomId,
-        serverTime: new Date().toISOString(),
         members: members.map((member) => ({
-          ...toMemberProfile(member),
+          ...toMemberProfile(member, away),
           isMe: member.userId === userId,
         })),
       },
@@ -182,12 +187,6 @@ export const roomRoutes = new OpenAPIHono<AuthedEnv>({ defaultHook })
       return c.json(errorBody("MEMBER_NOT_FOUND", "The user is not in this room"), 404);
     }
     const tasks = await selectOnBoardTasks(db, userId);
-    return c.json(
-      {
-        ...toMemberProfile(member),
-        serverTime: new Date().toISOString(),
-        tasks: tasks.map(toTaskResponse),
-      },
-      200,
-    );
+    const away = { now: new Date(), awayThresholdMs: awayThresholdMs(c.env) };
+    return c.json({ ...toMemberProfile(member, away), tasks }, 200);
   });
