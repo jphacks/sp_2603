@@ -63,6 +63,11 @@ function LoginPage() {
         <Logo />
       </h1>
       <div className="mt-auto flex w-full max-w-[280px] flex-col gap-6">
+        {errorMessage && (
+          <p role="alert" className="text-center text-sm text-white">
+            {errorMessage}
+          </p>
+        )}
         {providers.map(({ id, label, icon }) => (
           <Button
             key={id}
@@ -74,11 +79,6 @@ function LoginPage() {
             {label}
           </Button>
         ))}
-        {errorMessage && (
-          <p role="alert" className="text-center text-sm text-white">
-            {errorMessage}
-          </p>
-        )}
       </div>
     </main>
   );
