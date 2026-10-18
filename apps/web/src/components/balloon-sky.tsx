@@ -1,7 +1,13 @@
 import type { RoomMember } from "@fllooat/api-client";
 import useEmblaCarousel from "embla-carousel-react";
-import { motion } from "motion/react";
-import { useMemo, useRef } from "react";
+import {
+  type AnimationPlaybackControls,
+  animate,
+  type MotionValue,
+  motion,
+  useMotionValue,
+} from "motion/react";
+import { useEffect, useMemo, useRef } from "react";
 import { BALLOON_ANCHOR_PX, BALLOON_BELOW_ANCHOR_PX, Balloon } from "@/components/balloon";
 import { useColumnCount } from "@/hooks/use-column-count";
 import { myColumnIndex, placeAroundMe, ringFromMe } from "@/lib/balloon-ring";
@@ -11,6 +17,12 @@ import { cn } from "@/lib/utils";
 const MIN_COLUMN_WIDTH_PX = 130;
 const MIN_COLUMNS = 3;
 const TICK_COUNT = 11;
+
+/** 左右にスクロールできると気付いてもらうため、ルームを開いてこれだけたったら、並びを左右に 1 回ずつ少しずらす。 */
+const PEEK_DELAY_MS = 1_500;
+/** ずらす幅 (列の幅に対する割合)。気球は列の中央にあるので、隣の気球が少し見えるくらいにする。 */
+const PEEK_COLUMN_RATIO = 0.45;
+const PEEK_DURATION_S = 1.6;
 
 // 名前の行と気球が動く範囲の上端。目盛りを気球の範囲にそろえるため、列と目盛りで同じ値を使う。
 // ホーム画面から開くと上端がダイナミックアイランドの裏になるので、名前の行は高さを変えずに中身だけ下げる。
@@ -98,7 +110,9 @@ function LoopingColumns({
     }),
     [columns],
   );
-  const [emblaRef] = useEmblaCarousel(options);
+  const [emblaRef, emblaApi] = useEmblaCarousel(options);
+  const peekX = useMotionValue(0);
+  usePeekHint(emblaApi, columns, peekX);
 
   return (
     <div ref={emblaRef} className="h-full overflow-hidden">
@@ -110,12 +124,55 @@ function LoopingColumns({
             className="h-full min-w-0 shrink-0 grow-0"
             style={{ flexBasis: `${100 / columns}%` }}
           >
-            {renderColumn(member, member.userId)}
+            {/* embla はスライド自体の transform でループさせるので、ずらすのは中身にする。 */}
+            <motion.div className="h-full" style={{ x: peekX }}>
+              {renderColumn(member, member.userId)}
+            </motion.div>
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+/**
+ * ルームを開いて少したったら、並びを左にずらして戻し、右にずらして戻す。両隣の人がちらっと見えて、スクロールできるとわかる。
+ * 動かすのは 1 回だけ。先に触ったときや、動きを減らす設定の人には動かさない。触ったらすぐに止めて元に戻す。
+ */
+function usePeekHint(
+  emblaApi: ReturnType<typeof useEmblaCarousel>[1],
+  columns: number,
+  peekX: MotionValue<number>,
+) {
+  // 画面を回して列の数が変わっても、もう一度は動かさない。
+  const hasPeekedRef = useRef(false);
+
+  useEffect(() => {
+    if (!emblaApi || hasPeekedRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let running: AnimationPlaybackControls | undefined;
+    const stop = () => {
+      hasPeekedRef.current = true;
+      window.clearTimeout(timer);
+      running?.stop();
+      peekX.set(0);
+    };
+    const timer = window.setTimeout(() => {
+      hasPeekedRef.current = true;
+      const distance = (emblaApi.rootNode().clientWidth / columns) * PEEK_COLUMN_RATIO;
+      running = animate(peekX, [0, -distance, 0, distance, 0], {
+        duration: PEEK_DURATION_S,
+        ease: "easeInOut",
+      });
+    }, PEEK_DELAY_MS);
+    emblaApi.on("pointerDown", stop);
+    return () => {
+      window.clearTimeout(timer);
+      emblaApi.off("pointerDown", stop);
+      running?.stop();
+      peekX.set(0);
+    };
+  }, [emblaApi, columns, peekX]);
 }
 
 function SkyColumn({
