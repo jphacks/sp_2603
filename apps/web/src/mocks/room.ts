@@ -111,6 +111,12 @@ export const roomHandlers = [
     return HttpResponse.json<JoinedRoom>({ roomId: roomId as string }, { status: 201 });
   }),
 
+  // 自分の状態は members に残しておき、次にルームに入ったときに使う。
+  http.delete("*/api/me/room", () => {
+    roomId = null;
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post<{ roomId: string }>("*/api/rooms/:roomId/members", ({ params }) => {
     // 000000 は「見つからないルーム」として扱い、エラーの表示を確かめられるようにする。
     if (params.roomId === "000000") return error(404, "ROOM_NOT_FOUND");
