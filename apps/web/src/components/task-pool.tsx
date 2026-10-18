@@ -13,6 +13,8 @@ type TaskPoolProps = {
   /** ブロックを離した位置が気球の上なら乗せて true を返す。false ならブロックは元の位置に戻る。 */
   onDrop: (taskId: number, point: DropPoint) => boolean;
   onDelete: (taskId: number) => void;
+  /** プールが空のときの案内を押すと呼ばれる。タスクを追加するダイアログを開く。 */
+  onAdd: () => void;
   /** 乗せている途中のブロック。離した位置に置いたままにする。 */
   loadingTaskId: number | undefined;
   /** 消している途中のブロック。その × ボタンは押せなくする。 */
@@ -20,14 +22,23 @@ type TaskPoolProps = {
 };
 
 /** まだ気球に乗せないタスクのブロックを並べる置き場。ブロックをつかんで気球へドロップすると乗る。 */
-export function TaskPool({ pool, onDrop, onDelete, loadingTaskId, deletingTaskId }: TaskPoolProps) {
+export function TaskPool({
+  pool,
+  onDrop,
+  onDelete,
+  onAdd,
+  loadingTaskId,
+  deletingTaskId,
+}: TaskPoolProps) {
   return (
     <section
       aria-label="プール"
       className="w-full max-w-[336px] rounded-[10px] bg-[#CCE2F4] p-[17px] text-[13px]"
     >
       {pool.length === 0 ? (
-        <p className="py-8 text-center text-[#0055DD]">タスク追加でブロックを作れます</p>
+        <button type="button" onClick={onAdd} className="w-full py-8 text-center text-[#0055DD]">
+          タスク追加でブロックを作れます
+        </button>
       ) : (
         <ul className="grid grid-cols-2 gap-5">
           {pool.map((task) => (
