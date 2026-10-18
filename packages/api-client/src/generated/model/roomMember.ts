@@ -16,7 +16,7 @@ export interface RoomMember {
      * @maximum 100
      */
   busy: number;
-  /** 最後に画面を開いてから、しきい値 (初期値 3 時間) より長くたっているか */
+  /** 最後に画面を開いてから、しきい値 (環境変数 AWAY_THRESHOLD_MINUTES の分数) 以上たっているか */
   isAway: boolean;
   isMe: boolean;
 }

@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { signInAsNewUser } from "./helpers/auth";
 import { request } from "./helpers/request";
@@ -5,12 +6,14 @@ import { createRoom, joinRoom, leaveRoom } from "./helpers/room";
 
 type RoomBody = { members: { userId: string; name: string; isMe: boolean; isAway: boolean }[] };
 
-const HOUR_MS = 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+/** 離れているとみなすまでの分数。wrangler.jsonc の値を変えてもテストが追従するよう、環境変数から読む。 */
+const AWAY_THRESHOLD_MINUTES = Number(env.AWAY_THRESHOLD_MINUTES);
 
-/** 時計を今から hours 時間ずらす。ずらした時計はテストの後で元に戻す。 */
-const shiftClock = (hours: number) => {
+/** 時計を今から minutes 分ずらす。ずらした時計はテストの後で元に戻す。 */
+const shiftClock = (minutes: number) => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(Date.now() + hours * HOUR_MS);
+  vi.setSystemTime(Date.now() + minutes * MINUTE_MS);
 };
 
 afterEach(() => {
@@ -184,19 +187,19 @@ describe("ルーム", () => {
   it("ルームの情報を取ると、自分は離れていない扱いになる", async () => {
     const { headers } = await signInAsNewUser();
     const roomId = await createRoom(headers);
-    shiftClock(4);
+    shiftClock(AWAY_THRESHOLD_MINUTES + 60);
 
     const members = await getMembers(headers, roomId);
 
     expect(members).toMatchObject([{ isMe: true, isAway: false }]);
   });
 
-  it("しきい値 (3 時間) より長く画面を開いていない人は、離れている扱いになる", async () => {
+  it("しきい値の時間だけ画面を開いていない人は、離れている扱いになる", async () => {
     const alice = await signInAsNewUser({ name: "Alice" });
     const bob = await signInAsNewUser({ name: "Bob" });
     const roomId = await createRoom(alice.headers);
     await joinRoom(bob.headers, roomId);
-    shiftClock(3);
+    shiftClock(AWAY_THRESHOLD_MINUTES);
 
     const members = await getMembers(alice.headers, roomId);
 
@@ -211,7 +214,7 @@ describe("ルーム", () => {
     const bob = await signInAsNewUser({ name: "Bob" });
     const roomId = await createRoom(alice.headers);
     await joinRoom(bob.headers, roomId);
-    shiftClock(2.9);
+    shiftClock(AWAY_THRESHOLD_MINUTES - 1);
 
     const members = await getMembers(alice.headers, roomId);
 
@@ -223,7 +226,7 @@ describe("ルーム", () => {
     const bob = await signInAsNewUser({ name: "Bob" });
     const roomId = await createRoom(alice.headers);
     await joinRoom(bob.headers, roomId);
-    shiftClock(4);
+    shiftClock(AWAY_THRESHOLD_MINUTES + 60);
 
     await getMembers(bob.headers, roomId);
 
