@@ -6,7 +6,7 @@ import {
   useJoinRoom,
 } from "@fllooat/api-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -129,15 +129,6 @@ function JoinPage() {
           <p role="alert" className="text-center text-sm text-white">
             {errorMessage}
           </p>
-        )}
-        {currentRoomId && (
-          <Link
-            to="/rooms/$roomId"
-            params={{ roomId: currentRoomId }}
-            className="text-center text-sm underline underline-offset-4"
-          >
-            今のルーム ({currentRoomId}) に戻る
-          </Link>
         )}
       </div>
       <Dialog
