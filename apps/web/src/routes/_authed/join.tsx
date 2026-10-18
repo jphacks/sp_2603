@@ -87,6 +87,11 @@ function JoinPage() {
         <span className="sr-only">ルームに入る</span>
       </h1>
       <div className="mt-auto flex w-full max-w-70 flex-col gap-4">
+        {errorMessage && (
+          <p role="alert" className="text-center text-sm text-white">
+            {errorMessage}
+          </p>
+        )}
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -130,11 +135,6 @@ function JoinPage() {
         >
           新規ルーム作成
         </Button>
-        {errorMessage && (
-          <p role="alert" className="text-center text-sm text-white">
-            {errorMessage}
-          </p>
-        )}
         <button type="button" className="self-center text-sm" onClick={handleSignOut}>
           ログアウト
         </button>
