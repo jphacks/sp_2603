@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { type QueryClient, queryOptions } from "@tanstack/react-query";
 import { createAuthClient } from "better-auth/react";
 
 // 同一オリジンの /api/auth を使う (開発時は Vite のプロキシ経由)。
@@ -15,6 +15,15 @@ export const sessionQueryOptions = queryOptions({
     return data;
   },
 });
+
+/** ログアウトして、前のユーザーのデータを残さないようキャッシュを丸ごと消す。 */
+export const signOut = async (queryClient: QueryClient) => {
+  try {
+    await authClient.signOut();
+  } finally {
+    queryClient.clear();
+  }
+};
 
 // ログイン後の戻り先として、自サイト内の相対パスだけを受け付ける。
 export const toSafeRedirect = (value: unknown) =>
