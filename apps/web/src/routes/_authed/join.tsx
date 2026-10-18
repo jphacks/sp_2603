@@ -8,6 +8,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { UserMenu } from "@/components/user-menu";
+import { signOut } from "@/lib/auth-client";
 import { isRoomId, ROOM_ID_LENGTH } from "@/lib/room-id";
 
 export const Route = createFileRoute("/_authed/join")({
@@ -38,7 +39,7 @@ const errorMessageOf = (error: unknown) => {
 };
 
 const fieldButtonClassName =
-  "h-[35px] w-full rounded-[10px] bg-[#e6e6e6] text-[21px] font-normal text-[#0055dd] hover:bg-[#e6e6e6]/90";
+  "h-[35px] w-full rounded-[10px] bg-[#e6e6e6] text-lg font-normal text-[#0055dd] hover:bg-[#e6e6e6]/90";
 
 function JoinPage() {
   const navigate = useNavigate();
@@ -74,14 +75,18 @@ function JoinPage() {
     else run(action);
   };
 
+  const handleSignOut = async () => {
+    await signOut(queryClient);
+    await navigate({ to: "/login" });
+  };
+
   return (
-    <main className="relative flex h-full flex-col items-center justify-center bg-[#0055dd] px-4 text-[#e6e6e6]">
-      {/* デザインにはないが、ルームのメニューができるまではここだけがログアウトの入口になる。 */}
-      <div className="absolute top-4 right-4">
-        <UserMenu />
-      </div>
-      <h1 className="sr-only">ルームに入る</h1>
-      <div className="flex w-full max-w-70 flex-col gap-4">
+    <main className="flex h-full flex-col items-center bg-[#0055dd] px-4 pb-22.5 text-[#e6e6e6]">
+      <h1 className="mt-[28dvh] flex w-full justify-center">
+        <Logo />
+        <span className="sr-only">ルームに入る</span>
+      </h1>
+      <div className="mt-auto flex w-full max-w-70 flex-col gap-4">
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -113,7 +118,7 @@ function JoinPage() {
             入室
           </Button>
         </form>
-        <div className="flex items-center gap-4 text-[13px]">
+        <div className="flex items-center gap-4 text-sm">
           <span className="h-0 flex-1 border-t-[0.5px] border-white" />
           または
           <span className="h-0 flex-1 border-t-[0.5px] border-white" />
@@ -130,6 +135,9 @@ function JoinPage() {
             {errorMessage}
           </p>
         )}
+        <button type="button" className="self-center text-sm" onClick={handleSignOut}>
+          ログアウト
+        </button>
       </div>
       <Dialog
         open={confirming !== undefined}
