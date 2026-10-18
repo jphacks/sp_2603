@@ -11,32 +11,42 @@ type AddTaskDialogProps = {
   onOpenChange: (open: boolean) => void;
   /** まだ乗せられる重さ (%)。スライダーの上限になる。 */
   remaining: number;
+  isPending: boolean;
+  /** API が断ったときに、追加ボタンの上に出す文言。 */
+  errorMessage: string | undefined;
   onAdd: (title: string, weight: number) => void;
 };
 
-export function AddTaskDialog({ open, onOpenChange, remaining, onAdd }: AddTaskDialogProps) {
+export function AddTaskDialog({ open, onOpenChange, ...formProps }: AddTaskDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <GlassDialogContent>
         <DialogTitle className="sr-only">タスクをのせる</DialogTitle>
         {/* 開くたびに入力を空に戻すため、開いている間だけ中身を作る。 */}
-        {open && <AddTaskForm remaining={remaining} onAdd={onAdd} />}
+        {open && <AddTaskForm {...formProps} />}
       </GlassDialogContent>
     </Dialog>
   );
 }
 
-function AddTaskForm({ remaining, onAdd }: Pick<AddTaskDialogProps, "remaining" | "onAdd">) {
+function AddTaskForm({
+  remaining,
+  isPending,
+  errorMessage,
+  onAdd,
+}: Omit<AddTaskDialogProps, "open" | "onOpenChange">) {
   const [title, setTitle] = useState("");
-  const [weight, setWeight] = useState(Math.min(DEFAULT_WEIGHT, remaining));
-  const canAdd = title.trim() !== "" && remaining > 0;
+  const [weight, setWeight] = useState(DEFAULT_WEIGHT);
+  // 残りが届く前や、ほかの端末で乗せて残りが減ったときも、スライダーの範囲に収める。
+  const clampedWeight = Math.max(1, Math.min(weight, remaining));
+  const canAdd = title.trim() !== "" && remaining > 0 && !isPending;
 
   return (
     <form
       className="grid gap-3"
       onSubmit={(event) => {
         event.preventDefault();
-        if (canAdd) onAdd(title.trim(), weight);
+        if (canAdd) onAdd(title.trim(), clampedWeight);
       }}
     >
       <label className="grid gap-2">
@@ -57,17 +67,18 @@ function AddTaskForm({ remaining, onAdd }: Pick<AddTaskDialogProps, "remaining" 
               min={1}
               max={remaining}
               step={1}
-              value={[weight]}
+              value={[clampedWeight]}
               onValueChange={([value]) => value !== undefined && setWeight(value)}
               aria-label="タスクの重さ"
               className="py-2 **:data-[slot=slider-range]:bg-[#0A84FF] **:data-[slot=slider-thumb]:size-6 **:data-[slot=slider-thumb]:border-2 **:data-[slot=slider-thumb]:border-neutral-900 **:data-[slot=slider-track]:h-1.5 **:data-[slot=slider-track]:bg-white"
             />
-            <span className="text-center text-sm">{weight}%</span>
+            <span className="text-center text-sm">{clampedWeight}%</span>
           </>
         ) : (
           <span className="text-sm">これ以上はのせられません</span>
         )}
       </div>
+      {errorMessage && <p className="text-sm text-red-700">{errorMessage}</p>}
       <div className="flex justify-end">
         <button
           type="submit"

@@ -1,9 +1,9 @@
+import type { RoomMember } from "@fllooat/api-client";
 import useEmblaCarousel from "embla-carousel-react";
 import { motion } from "motion/react";
 import { useMemo, useRef } from "react";
 import { BALLOON_ANCHOR_PX, Balloon } from "@/components/balloon";
 import { useColumnCount } from "@/hooks/use-column-count";
-import type { RoomMember } from "@/hooks/use-placeholder-room";
 import { assignBalloonColors } from "@/lib/balloon-colors";
 import { balloonDistance } from "@/lib/balloon-distance";
 import { myColumnIndex, placeAroundMe, ringFromMe } from "@/lib/balloon-ring";
