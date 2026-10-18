@@ -41,6 +41,16 @@ export const getCreateRoomMockHandler = (overrideResponse?: JoinedRoom | ((info:
   }, options)
 }
 
+export const getLeaveMyRoomMockHandler = (overrideResponse?: void | ((info: Parameters<Parameters<typeof http.delete>[1]>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.delete('*/api/me/room', async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {await delay(300);
+  if (typeof overrideResponse === 'function') {await overrideResponse(info); }
+
+    return new HttpResponse(null,
+      { status: 204
+      })
+  }, options)
+}
+
 export const getJoinRoomMockHandler = (overrideResponse?: JoinedRoom | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<JoinedRoom> | JoinedRoom), options?: RequestHandlerOptions) => {
   return http.post('*/api/rooms/:roomId/members', async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {await delay(300);
 
@@ -78,6 +88,7 @@ export const getGetRoomMemberMockHandler = (overrideResponse?: MemberDetail | ((
 }
 export const getRoomsMock = () => [
   getCreateRoomMockHandler(),
+  getLeaveMyRoomMockHandler(),
   getJoinRoomMockHandler(),
   getGetRoomMockHandler(),
   getGetRoomMemberMockHandler()

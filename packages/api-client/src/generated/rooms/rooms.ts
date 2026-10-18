@@ -141,6 +141,90 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCreateRoomMutationOptions(options), queryClient);
     }
+    export type leaveMyRoomResponse204 = {
+  data: void
+  status: 204
+}
+
+export type leaveMyRoomResponse401 = {
+  data: ApiErrorBody
+  status: 401
+}
+
+export type leaveMyRoomResponseSuccess = (leaveMyRoomResponse204) & {
+  headers: Headers;
+};
+export type leaveMyRoomResponseError = (leaveMyRoomResponse401) & {
+  headers: Headers;
+};
+
+export const getLeaveMyRoomUrl = () => {
+
+
+
+
+  return `/api/me/room`
+}
+
+export const leaveMyRoom = async ( options?: Parameters<typeof apiFetch>[1]): Promise<leaveMyRoomResponseSuccess> => {
+
+  return apiFetch<leaveMyRoomResponseSuccess>(getLeaveMyRoomUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getLeaveMyRoomMutationKey = () => ['leaveMyRoom'] as const;
+
+export const getLeaveMyRoomMutationOptions = <TError = ApiErrorBody,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveMyRoom>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveMyRoom>>, TError,void, TContext> => {
+
+const mutationKey = getLeaveMyRoomMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveMyRoom>>, void> = () => {
+
+
+          return  leaveMyRoom(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveMyRoomMutationResult = NonNullable<Awaited<ReturnType<typeof leaveMyRoom>>>
+
+    export type LeaveMyRoomMutationError = ApiErrorBody
+
+
+    export const useLeaveMyRoom = <TError = ApiErrorBody,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveMyRoom>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveMyRoom>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLeaveMyRoomMutationOptions(options), queryClient);
+    }
     export type joinRoomResponse200 = {
   data: JoinedRoom
   status: 200

@@ -770,6 +770,34 @@
         }
       }
     },
+    "/api/me/room": {
+      "delete": {
+        "tags": [
+          "rooms"
+        ],
+        "operationId": "leaveMyRoom",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "今いるルームから抜けた。ルームに入っていなくても成功にする"
+          },
+          "401": {
+            "description": "ログインしていない (UNAUTHORIZED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/rooms/{roomId}/members": {
       "post": {
         "tags": [

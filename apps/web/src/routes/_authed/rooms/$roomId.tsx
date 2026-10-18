@@ -1,4 +1,5 @@
 import {
+  getGetMeQueryKey,
   isApiError,
   type RoomMember,
   useAddMyTask,
@@ -6,7 +7,9 @@ import {
   useGetMyTasks,
   useGetRoom,
   useGetRoomMember,
+  useLeaveMyRoom,
 } from "@fllooat/api-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -49,14 +52,23 @@ function RoomPage() {
     query: { enabled: selectedUserId !== undefined, refetchInterval: POLLING_INTERVAL_MS },
   });
 
-  // ほかの端末で別のルームに移ったときも NOT_ROOM_MEMBER になる。招待の URL と同じく ID を入れて /join に戻す。
+  // 自分のルームではない URL を開いたときや、ほかの端末でルームを移ったり抜けたりしたとき。
+  // /join は、ルームに入っていればそのルームへ、入っていなければ入室の画面を出す。
   useEffect(() => {
-    if (isApiError(room.error, "NOT_ROOM_MEMBER")) {
-      navigate({ to: "/join", search: { roomId }, replace: true });
-    } else if (isApiError(room.error, "ROOM_NOT_FOUND")) {
+    if (isApiError(room.error, "NOT_ROOM_MEMBER") || isApiError(room.error, "ROOM_NOT_FOUND")) {
       navigate({ to: "/join", replace: true });
     }
-  }, [room.error, roomId, navigate]);
+  }, [room.error, navigate]);
+
+  const queryClient = useQueryClient();
+  const leaveRoom = useLeaveMyRoom({
+    mutation: {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        navigate({ to: "/join" });
+      },
+    },
+  });
 
   // 開いている詳細の人がルームを抜けたら閉じる。
   useEffect(() => {
@@ -86,7 +98,7 @@ function RoomPage() {
   const selectedMember = room.data?.data.members.find((m) => m.userId === selectedUserId);
 
   return (
-    <section className="flex h-full flex-col bg-linear-to-b from-[#0050DC] via-[#2B95EE] to-[#B4E1F7]">
+    <section className="relative flex h-full flex-col bg-linear-to-b from-[#0050DC] via-[#2B95EE] to-[#B4E1F7]">
       <div className="min-h-0 flex-1">
         {room.data ? (
           <BalloonSky
@@ -103,6 +115,15 @@ function RoomPage() {
           </p>
         )}
       </div>
+      {/* TODO: ルームのメニューのデザインが届いたら、そこに移す。 */}
+      <button
+        type="button"
+        disabled={leaveRoom.isPending}
+        onClick={() => leaveRoom.mutate()}
+        className="absolute top-3 right-3 rounded-full bg-white/30 px-3 py-1 text-xs text-white backdrop-blur disabled:opacity-50"
+      >
+        ルームを出る
+      </button>
       {permission === "prompt" && (
         <button
           type="button"

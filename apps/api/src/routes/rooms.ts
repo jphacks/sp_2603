@@ -13,6 +13,7 @@ import {
   createAndJoinRoom,
   enterRoom,
   findRoomMember,
+  leaveRoom,
   listRoomMembers,
   roomExists,
   toMemberProfile,
@@ -39,6 +40,18 @@ const createRoom = createRoute({
     },
     ...unauthorizedResponse,
     503: errorResponse("空いているルーム ID が見つからなかった (ROOM_ID_EXHAUSTED)"),
+  },
+});
+
+const leaveMyRoom = createRoute({
+  method: "delete",
+  path: "/me/room",
+  tags: ["rooms"],
+  operationId: "leaveMyRoom",
+  ...authRequired,
+  responses: {
+    204: { description: "今いるルームから抜けた。ルームに入っていなくても成功にする" },
+    ...unauthorizedResponse,
   },
 });
 
@@ -118,6 +131,10 @@ export const roomRoutes = new OpenAPIHono<AuthedEnv>({ defaultHook })
       return c.json(errorBody("ROOM_ID_EXHAUSTED", "Could not find an unused room ID"), 503);
     }
     return c.json({ roomId }, 201);
+  })
+  .openapi(leaveMyRoom, async (c) => {
+    await leaveRoom(createDb(c.env.DB), c.get("user").id);
+    return c.body(null, 204);
   })
   .openapi(joinRoom, async (c) => {
     const db = createDb(c.env.DB);
