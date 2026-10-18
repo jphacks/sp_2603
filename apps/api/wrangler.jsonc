@@ -17,7 +17,7 @@
   },
   "vars": {
     // 最後に画面を開いてからこの分数が過ぎた人を、離れている (isAway) とみなす。
-    "AWAY_THRESHOLD_MINUTES": "180"
+    "AWAY_THRESHOLD_MINUTES": "30"
   },
   // 値はローカルでは .dev.vars、本番では `wrangler secret put <NAME>` で設定する。
   "secrets": {

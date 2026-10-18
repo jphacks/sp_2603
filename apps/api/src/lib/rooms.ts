@@ -123,12 +123,14 @@ const selectMembers = (db: Db) =>
 
 type MemberRow = Awaited<ReturnType<ReturnType<typeof selectMembers>["all"]>>[number];
 
-const DEFAULT_AWAY_THRESHOLD_MINUTES = 180;
+// AWAY_THRESHOLD_MINUTES が空や数でないときだけ使う。ふだんの値は wrangler.jsonc の vars で決める。
+const FALLBACK_AWAY_THRESHOLD_MINUTES = 30;
 
-/** 離れているとみなすまでの時間 (ミリ秒)。環境変数 AWAY_THRESHOLD_MINUTES の値が数でなければ 3 時間にする。 */
+/** 離れているとみなすまでの時間 (ミリ秒)。環境変数 AWAY_THRESHOLD_MINUTES の値が正の数でなければ、フォールバックの値を使う。 */
 export const awayThresholdMs = (env: Pick<Env, "AWAY_THRESHOLD_MINUTES">) => {
   const minutes = Number(env.AWAY_THRESHOLD_MINUTES);
-  return (Number.isFinite(minutes) ? minutes : DEFAULT_AWAY_THRESHOLD_MINUTES) * 60_000;
+  const valid = Number.isFinite(minutes) && minutes > 0;
+  return (valid ? minutes : FALLBACK_AWAY_THRESHOLD_MINUTES) * 60_000;
 };
 
 /** 端末の時計がずれていても結果が変わらないよう、離れているかはサーバーの時計で決める。 */

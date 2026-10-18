@@ -27,10 +27,11 @@ WITH demo_member (id, joined_order) AS (
 SELECT id, '123456', cast(unixepoch('subsec') * 1000 as integer) - 86400000 + joined_order * 60000
 FROM demo_member;
 
--- 最後に画面を開いていたのは何分前か。Yui と Sora は 3 時間より前なので、離れている扱いになる。
+-- 最後に画面を開いていたのは何分前か。しきい値 (wrangler.jsonc の AWAY_THRESHOLD_MINUTES、今は 30 分) を変えたら合わせて直す。
+-- 今の値では Yui と Sora が離れている扱いになる。
 INSERT INTO user_status (user_id, last_seen_at)
 WITH demo_member (id, seen_ago) AS (
-  VALUES ('demo-hana', 10), ('demo-ren', 90), ('demo-yui', 300), ('demo-sora', 1080), ('demo-kai', 40)
+  VALUES ('demo-hana', 3), ('demo-ren', 12), ('demo-yui', 300), ('demo-sora', 1080), ('demo-kai', 20)
 )
 SELECT id, cast(unixepoch('subsec') * 1000 as integer) - seen_ago * 60000
 FROM demo_member;

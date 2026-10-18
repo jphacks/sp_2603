@@ -97,7 +97,7 @@ RETURNING *;
 
 `isAway = now - last_seen_at >= しきい値` をサーバーで計算します。サーバーの時計で比べるので、端末の時計がずれていても結果は変わりません。
 
-しきい値は Workers の環境変数 `AWAY_THRESHOLD_MINUTES` で変えられるようにし、初期値は `180` (3 時間) にします。`wrangler.jsonc` の `vars` に置き、変えたら `pnpm --filter @fllooat/api cf-typegen` を実行します。
+しきい値は Workers の環境変数 `AWAY_THRESHOLD_MINUTES` で変えられるようにし、初期値は `30` (30 分) にします。最初は 3 時間にしていましたが、デモで変化が見えるよう短くしました。`wrangler.jsonc` の `vars` に置き、変えたら `pnpm --filter @fllooat/api cf-typegen` を実行します。
 
 ### ルーム ID、入室、回数の制限
 
@@ -175,6 +175,6 @@ RETURNING *;
 | --- | --- | --- |
 | 乗せたタスクを、振らずにプールへ戻す操作 | 作らない | API を作らない。作るなら `POST /api/me/tasks/{taskId}/unload` を足す |
 | 重さと籠の大きさの対応 | フロントで決める | API に影響しない |
-| 離れていると見なすしきい値 | 3 時間 | `AWAY_THRESHOLD_MINUTES` で変える |
+| 離れていると見なすしきい値 | 30 分 (デモ用) | `AWAY_THRESHOLD_MINUTES` で変える |
 
 合計が 100% を超えるドロップは起きにくい想定です。ただし重さの合計が 60% のときに 50% のブロックを乗せる、といったことはできてしまうので、サーバーは 409 で断ります。画面での見せ方は、起きたときに決めます。
