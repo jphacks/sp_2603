@@ -39,6 +39,8 @@ type BalloonSheetProps = {
 type PoolEditing = {
   tasks: PoolTask[] | undefined;
   onLoad: (taskId: number) => void;
+  /** タスクを追加するダイアログを開く。 */
+  onAdd: () => void;
   loadingTaskId: number | undefined;
   /** 乗せられなかったときに、プールの上に出す文言。 */
   errorMessage: string | undefined;
@@ -126,7 +128,8 @@ export function BalloonSheet({
           >
             <div className="h-[5.16px] w-20 rounded-[10px] bg-[#E6E6E6]" />
           </div>
-          <div className="flex w-full flex-1 flex-col items-center overflow-y-auto px-4 pb-[calc(114px+env(safe-area-inset-bottom))]">
+          {/* 中身があふれたときに名前や気球が縮んで消えないよう、子は縮ませずにスクロールさせる。 */}
+          <div className="flex min-h-0 w-full flex-1 flex-col items-center overflow-y-auto overscroll-contain px-4 pb-[calc(114px+env(safe-area-inset-bottom))] *:shrink-0">
             <h2
               id={titleId}
               className="mt-8 w-full max-w-70 truncate text-center text-[21px] font-bold tracking-[-0.04em]"
@@ -149,6 +152,7 @@ export function BalloonSheet({
                       pool={pool.tasks}
                       onDrop={dropOnBalloon}
                       onDelete={onDeleteTask}
+                      onAdd={pool.onAdd}
                       loadingTaskId={pool.loadingTaskId}
                       deletingTaskId={deletingTaskId}
                     />

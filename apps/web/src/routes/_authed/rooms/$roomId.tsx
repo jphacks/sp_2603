@@ -186,13 +186,13 @@ function RoomPage() {
           </p>
         )}
       </div>
-      {/* TODO: 許可を求めるダイアログに置き換える。それまでは % の行と重ならないよう、名前の行の下に置く。
-          名前はセーフエリアの下の残りの高さの中央に来るので、セーフエリアの半分だけ下げる。 */}
-      {permission === "prompt" && (
+      {/* 名前の行の上に置く。断られても押し直せるよう、出したままにする。
+          ホーム画面から開いたときは、ダイナミックアイランドのすぐ下 (セーフエリアの下端より少し上) に来る。 */}
+      {(permission === "prompt" || permission === "denied") && (
         <button
           type="button"
           onClick={requestPermission}
-          className="absolute top-[calc(88px+env(safe-area-inset-top)/2)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/30 px-4 py-1.5 text-xs text-white backdrop-blur"
+          className="absolute top-[max(8px,calc(env(safe-area-inset-top)-4px))] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/30 px-3 py-1 text-[11px] text-white backdrop-blur"
         >
           スマホを振ってタスクを落とせるようにする
         </button>
@@ -227,6 +227,7 @@ function RoomPage() {
                 pool: {
                   tasks: myTasks.data?.data.pool,
                   onLoad: (taskId: number) => loadTask.mutate({ taskId }),
+                  onAdd: openAddTask,
                   loadingTaskId: loadTask.isPending ? loadTask.variables.taskId : undefined,
                   errorMessage: loadTaskErrorMessageOf(loadTask.error),
                 },
