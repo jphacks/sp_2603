@@ -127,10 +127,9 @@ export const roomRoutes = new OpenAPIHono<AuthedEnv>({ defaultHook })
     // ID があるかを確かめる前に数えるので、ない ID を総当たりしても回数に入る。
     const { success } = await c.env.JOIN_RATE_LIMITER.limit({ key: userId });
     if (!success) return c.json(errorBody("RATE_LIMITED", "Too many attempts to join"), 429);
-    if (!(await roomExists(db, roomId))) {
+    if (!(await roomExists(db, roomId)) || !(await enterRoom(db, userId, roomId, new Date()))) {
       return c.json(errorBody("ROOM_NOT_FOUND", "The room does not exist"), 404);
     }
-    await enterRoom(db, userId, roomId, new Date());
     return c.json({ roomId }, 200);
   })
   .openapi(getRoom, async (c) => {
