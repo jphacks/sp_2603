@@ -2,9 +2,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { SiGithub } from "react-icons/si";
-import logoMark from "@/assets/logo-mark.svg";
-import logoWordmark from "@/assets/logo-wordmark.svg";
 import skyTexture from "@/assets/sky-texture.webp";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
   authClient,
@@ -60,9 +59,8 @@ function LoginPage() {
         className="absolute inset-0 -z-10 bg-cover bg-[64%_center] opacity-75 mix-blend-soft-light"
         style={{ backgroundImage: `url(${skyTexture})` }}
       />
-      <h1 className="mt-[28dvh] flex w-full max-w-[333px] items-center justify-between">
-        <img src={logoMark} alt="" className="w-[20.4%]" />
-        <img src={logoWordmark} alt="Fllooat" className="w-[71.8%]" />
+      <h1 className="mt-[28dvh] flex w-full justify-center">
+        <Logo />
       </h1>
       <div className="mt-auto flex w-full max-w-[280px] flex-col gap-6">
         {providers.map(({ id, label, icon }) => (
