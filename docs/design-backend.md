@@ -1,380 +1,179 @@
 # バックエンド設計
 
-[docs/concept.md](concept.md) の MVP を実装するための、DB と API の設計案です。決まっていないことは最後の「未決事項」にまとめています。
+[new-concept.md](new-concept.md) に合わせた DB と API の設計です。MVP ([concept.md](concept.md)) の実装からの変更点には **(変更)** を付けました。決まっていないことは最後の「未決事項」にまとめています。
 
 ## 方針
 
-- 1 人が入れるルームは 1 つ。ルームの状態はポーリング (数秒ごとの再取得) で共有する。
-- 気球の高さ (忙しさ) と最終更新は、サーバーが計算して返す。フロントは表示だけを受け持つ。
-- 合計 100% の制限など、壊れると困る約束はサーバーで守る。フロントのスライダーの上限は補助にすぎない。
-- 自分のタスクを変える API は、変えた後の自分の状態をそのまま返す。フロントは取り直さずに画面を更新できる。
+- 1 人が入れるルームは 1 つ。ルームの状態はポーリング (3 秒ごとの再取得) で共有する。
+- 忙しさ (重さの合計) と離れているかどうかは、サーバーが計算して返す。籠の大きさはフロントが忙しさから決めるので、API は変えない。
+- 合計 100% の制限など、壊れると困る約束はサーバーで守る。
+- 自分のタスクを変える API は、変えた後の自分の状態 (`MyStatus`) を返す。フロントはこれで空の画面とタスク編集画面の両方を更新し、どの画面でも気球の状態をそろえる。
 - 他人のタスクのタイトルは、同じルームのメンバーが気球の詳細を開いたときだけ返す。
+
+## 今の実装から変えること
+
+| 何を | どう変える |
+| --- | --- |
+| タスクの状態 | `on` / `dropped` から `pool` / `on` にする。落としたタスクの履歴はなくす |
+| 新しいタスク | 気球ではなくプールに作る。100% の判定は、プールから気球に乗せるときに行う |
+| プールのタスク | 消す API を足す。編集は MVP では作らない |
+| 振り落とし | 落としたタスクは履歴に残さず消す |
+| 履歴の API | `GET /api/me/history` と `POST /api/me/history/{taskId}/reload` を消す |
+| 最終更新 | 「経過時間による遠近」をやめ、最後に画面を開いていた時刻 (`last_seen_at`) に置き換える |
+| ルームの応答 | `statusUpdatedAt` と `serverTime` を消し、`isAway` を足す |
 
 ## DB
 
-D1 (SQLite) を Drizzle で扱います。日時はミリ秒の UNIX 時刻で持ち、Better Auth のテーブル (`timestamp_ms`) とそろえます。
+D1 (SQLite) を Drizzle で扱います。日時はミリ秒の UNIX 時刻で持ちます。
 
 ```
 user (Better Auth)
  ├─ room_member   1 人 1 行。どのルームにいるか
- │    └─ room     6 桁の ID を持つルーム
- ├─ user_status   1 人 1 行。最終更新の日時
- └─ task          乗っているタスクと、落としたタスクの履歴
+ │    └─ room     6 桁の ID のルーム
+ ├─ user_status   1 人 1 行。最後に画面を開いていた時刻
+ └─ task          プールにあるタスクと、気球に乗っているタスク
 ```
 
-### room
+`room` と `room_member` は変えません。
 
-| 列 | 型 | 制約 | 説明 |
-| --- | --- | --- | --- |
-| `id` | TEXT | 主キー、6 桁の数字 | ルーム ID。`012345` のように先頭が 0 でもよいので文字列で持つ |
-| `created_by` | TEXT | `user.id` を参照、NULL 可 | 作った人。ユーザーが消えたら NULL にする |
-| `created_at` | INTEGER | NOT NULL | 作成日時 |
-
-### room_member
-
-| 列 | 型 | 制約 | 説明 |
-| --- | --- | --- | --- |
-| `user_id` | TEXT | 主キー、`user.id` を参照 (削除時は一緒に消す) | 1 人 1 ルームなので主キーにする |
-| `room_id` | TEXT | NOT NULL、`room.id` を参照 (削除時は一緒に消す) | |
-| `joined_at` | INTEGER | NOT NULL | 入室日時。気球の並び順に使う |
-
-インデックス: `(room_id, joined_at)`。ルームのメンバーを入室順に取り出すため。
-
-### user_status
+### user_status (変更)
 
 | 列 | 型 | 制約 | 説明 |
 | --- | --- | --- | --- |
 | `user_id` | TEXT | 主キー、`user.id` を参照 (削除時は一緒に消す) | |
-| `updated_at` | INTEGER | NOT NULL | 最終更新。気球の遠近に使う |
+| `last_seen_at` | INTEGER | NOT NULL | 最後に画面を開いていた時刻。`updated_at` から名前を変える |
 
-concept.md の案では `room_member.status_updated_at` に置いていましたが、別のテーブルに分けました。理由は 2 つあります。
+- 行は初めて入室したときに作る (今と同じ)。
+- `GET /api/rooms/{roomId}` が呼ばれるたびに、呼んだ人の `last_seen_at` を今にする。タスクを乗せる、落とすといった操作では更新しない。
+- D1 の書き込み量に注意する。3 秒ごとに毎回書くと 1 人で 1 日約 2.9 万行になり、数人で無料枠 (1 日 10 万行) を超える。そこで、前回から 1 分以上たっているときだけ書く。
 
-- ルームを移ると `room_member` の行が書き換わり、最終更新も消えてしまう。最終更新はルームではなく人に付く情報なので、人ごとのテーブルに置く。
-- 最終更新を task の日時から計算する方法もあるが、それだと手が空いている人 (タスクが 0 件) は「まだ暇」と伝える手段がなく、時間とともに薄くなってしまう。空の気球を揺らしたときにも更新できるよう、独立した値として持つ。
+  ```sql
+  UPDATE user_status SET last_seen_at = :now
+  WHERE user_id = :user_id AND last_seen_at < :now - 60000;
+  ```
 
-行は初めて入室したときに `INSERT ... ON CONFLICT DO NOTHING` で作ります。すでに行があれば変えないので、ルームを移っただけでは最終更新は新しくなりません。そのあとは、タスクを乗せたとき、落としたとき (空でも)、乗せ直したときに今の日時にします。
+  条件に合わなければ 0 行で、書き込みとして数えられない。しきい値は時間単位なので、1 分の遅れは問題にならない。
 
-### task
+### task (変更)
 
 | 列 | 型 | 制約 | 説明 |
 | --- | --- | --- | --- |
 | `id` | INTEGER | 主キー、自動採番 | |
 | `user_id` | TEXT | NOT NULL、`user.id` を参照 (削除時は一緒に消す) | |
-| `title` | TEXT | NOT NULL、`length(trim(title)) > 0` | 長さの上限は DB では縛らず、API の zod で確かめる (案は 30 文字) |
-| `weight` | INTEGER | NOT NULL、1 から 100 | 重さ (%)。0% のタスクは気球が動かず意味がないので 1 からにする |
-| `state` | TEXT | NOT NULL、`on` か `dropped` | 乗っているか、落としたか |
-| `created_at` | INTEGER | NOT NULL | 乗せた日時。乗せ直したときは上書きする |
-| `dropped_at` | INTEGER | `state = dropped` のときだけ値を持つ | 落とした日時。履歴の並び順に使う |
+| `title` | TEXT | NOT NULL、空白だけは不可 | 上限 (30 文字) は API の zod で確かめる |
+| `weight` | INTEGER | NOT NULL、1 から 100 | 重さ (%)。プールに作るときに決める |
+| `state` | TEXT | NOT NULL、`pool` か `on` | プールにあるか、気球に乗っているか |
+| `created_at` | INTEGER | NOT NULL | 作った日時。プールの並び順に使う |
+| `loaded_at` | INTEGER | `state = on` のときだけ値を持つ | 乗せた日時。気球の中の並び順に使う |
 
-インデックス: `(user_id, state, dropped_at)`。乗っているタスクの合計と、履歴の新しい順の取得に使う。
-
-`state` と `dropped_at` の組み合わせは CHECK 制約で縛ります (`on` なら NULL、`dropped` なら値がある)。
-
-タイトルの上限を CHECK 制約に入れないのは、SQLite では CHECK 制約を変えるのにテーブルを作り直すマイグレーションが要るためです。上限は concept.md で未決なので、後から変えやすい zod の側に置きます。
+- `dropped_at` と、`state` と `dropped_at` の CHECK 制約は消す。代わりに「`on` なら `loaded_at` がある、`pool` なら NULL」を CHECK で縛る。
+- インデックスは `(user_id, state)` にする。
+- マイグレーションでは、`dropped` の行を消してから作り直す。SQLite で CHECK 制約を変えるとテーブルの作り直しになるが、`pnpm db:generate` がその SQL を作る。
 
 ## 計算のしかた
 
 ### 忙しさ
 
-その人の `state = on` のタスクの `weight` の合計です。タスクがなければ 0% で、最大 100% です。
+その人の `state = on` のタスクの `weight` の合計です (0 から 100%)。今と同じです。
 
-### 合計 100% の制限
+### 気球に乗せる (合計 100% の制限)
 
-D1 は、読んでから書くまでを 1 つのトランザクションにまとめる使い方ができません。そこで、判定と書き込みを 1 つの SQL 文で行います。
-
-タスクを乗せるとき:
+D1 は読んでから書くまでを 1 つのトランザクションにできないので、判定と書き込みを 1 つの SQL で行います。
 
 ```sql
-INSERT INTO task (user_id, title, weight, state, created_at)
-SELECT :user_id, :title, :weight, 'on', :now
-WHERE (SELECT COALESCE(SUM(weight), 0) FROM task WHERE user_id = :user_id AND state = 'on') + :weight <= 100
+UPDATE task SET state = 'on', loaded_at = :now
+WHERE id = :task_id AND user_id = :user_id AND state = 'pool'
+  AND (SELECT COALESCE(SUM(weight), 0) FROM task WHERE user_id = :user_id AND state = 'on') + weight <= 100
 RETURNING *;
 ```
 
-履歴から乗せ直すとき:
+0 行だったときは、そのタスクが自分のプールにあるかを確かめます。なければ 404、あれば残りの % を数えて 409 を返します。
 
-```sql
-UPDATE task SET state = 'on', weight = :weight, created_at = :now, dropped_at = NULL
-WHERE id = :task_id AND user_id = :user_id AND state = 'dropped'
-  AND (SELECT COALESCE(SUM(weight), 0) FROM task WHERE user_id = :user_id AND state = 'on') + :weight <= 100
-RETURNING *;
-```
+### 振り落とす
 
-乗せ直しでは `state = 'dropped'` を条件に入れます。入れないと、乗っているタスクの重さを書き換えられてしまい、二度押ししたときに合計の判定もずれます。
+乗っているタスクをすべて消します (`DELETE FROM task WHERE user_id = :user_id AND state = 'on'`)。プールには戻しません。
 
-どちらも、条件に合わなければ 1 行も書き込まれません。2 つの端末から同時に送っても、100% を超えることはありません。0 行だったときは次のように応答を決めます。
+### 離れているかどうか
 
-- 乗せるとき: 原因は合計の超過だけなので、残りの % を数えて 409 を返す。
-- 乗せ直すとき: そのタスクが自分の履歴 (`state = 'dropped'`) にあるかを SELECT で確かめる。なければ 404、あれば残りの % を数えて 409 を返す。
+`isAway = now - last_seen_at >= しきい値` をサーバーで計算します。サーバーの時計で比べるので、端末の時計がずれていても結果は変わりません。
 
-書き込めたら、`user_status.updated_at` を今にします。
+しきい値は Workers の環境変数 `AWAY_THRESHOLD_MINUTES` で変えられるようにし、初期値は `180` (3 時間) にします。`wrangler.jsonc` の `vars` に置き、変えたら `pnpm --filter @fllooat/api cf-typegen` を実行します。
 
-### タスクを落とす
+### ルーム ID、入室、回数の制限
 
-`UPDATE task SET state = 'dropped', dropped_at = :now WHERE user_id = :user_id AND state = 'on'` と `user_status.updated_at` の更新を、D1 の batch でまとめて実行します。
-
-### ルーム ID の発行
-
-`crypto.getRandomValues` で 0 から 999999 の数を作り、6 桁にゼロ埋めします。`INSERT ... ON CONFLICT DO NOTHING` で入れてみて、すでに使われていたら作り直します。5 回続けて衝突したら 503 を返します。100 万通りあるので、ハッカソンの規模で衝突が続くことはまずありません。
-
-### 入室と退室
-
-入室は次の文で行います。すでに別のルームにいれば、そのまま移ります (前のルームからは自動で抜ける)。同じルームに入り直したときは `joined_at` を変えず、並び順が変わらないようにします。
-
-```sql
-INSERT INTO room_member (user_id, room_id, joined_at) VALUES (:user_id, :room_id, :now)
-ON CONFLICT (user_id) DO UPDATE SET room_id = excluded.room_id, joined_at = excluded.joined_at
-WHERE room_member.room_id <> excluded.room_id;
-
-INSERT INTO user_status (user_id, updated_at) VALUES (:user_id, :now)
-ON CONFLICT (user_id) DO NOTHING;
-```
-
-この 2 文は D1 の batch でまとめます。ルームの作成では、`room` の追加もこの batch に入れます。batch は全体が 1 つのトランザクションになるので、ルームだけができて入室できない、という中途半端な状態は残りません。
-
-誰もいなくなったルームは消さずに残します (未決事項を参照)。
-
-### 入室の回数の制限
-
-ID の総当たりへの対策は MVP の対象外ですが、`POST /api/rooms/{roomId}/members` にだけ Workers の Rate Limiting binding を付けます。キーはユーザー ID で、1 分に 10 回までにします。設定が少なく済み、ピッチではセキュリティへの配慮として説明できます。
+今と同じです。ID は 6 桁の乱数で、衝突したら 5 回まで作り直します。入室は 1 人 1 分 10 回までです。誰もいなくなったルームは残します。
 
 ## API
 
-すべて `/api` の下にあり、`/api/healthz` と `/api/auth/*` 以外はログインが必要です。日時は ISO 8601 の文字列で返します。
+すべて `/api` の下にあり、`/api/healthz` と `/api/auth/*` 以外はログインが必要です。
 
-### 一覧
+| メソッド | パス | 用途 | |
+| --- | --- | --- | --- |
+| GET | `/api/me` | 自分の情報と今いるルーム | |
+| POST | `/api/rooms` | ルームを作って入る | |
+| POST | `/api/rooms/{roomId}/members` | ID を指定してルームに入る | |
+| GET | `/api/rooms/{roomId}` | メンバーと気球の状態 (ポーリング用) | 変更 |
+| GET | `/api/rooms/{roomId}/members/{userId}` | 気球の詳細 | 変更 |
+| GET | `/api/me/tasks` | 自分の状態 (`MyStatus`) | 変更 |
+| POST | `/api/me/tasks` | プールにタスクを作る | 変更 |
+| POST | `/api/me/tasks/{taskId}/load` | プールのタスクを気球に乗せる | 追加 |
+| DELETE | `/api/me/tasks/{taskId}` | プールのタスクを消す | 追加 |
+| POST | `/api/me/tasks/drop` | 乗っているタスクを全部落とす | |
+| GET | `/api/me/history` | | 削除 |
+| POST | `/api/me/history/{taskId}/reload` | | 削除 |
 
-| メソッド | パス | 用途 |
-| --- | --- | --- |
-| GET | `/api/me` | 自分の情報と、今いるルーム |
-| POST | `/api/rooms` | ルームを作って入る |
-| POST | `/api/rooms/{roomId}/members` | ID を指定してルームに入る |
-| GET | `/api/rooms/{roomId}` | ルームのメンバーと気球の状態 (ポーリング用) |
-| GET | `/api/rooms/{roomId}/members/{userId}` | 気球の詳細 |
-| GET | `/api/me/tasks` | 自分の状態と乗っているタスク |
-| POST | `/api/me/tasks` | タスクを乗せる |
-| POST | `/api/me/tasks/drop` | タスクを全部落とす |
-| GET | `/api/me/history` | 落としたタスクの履歴 |
-| POST | `/api/me/history/{taskId}/reload` | 履歴から乗せ直す |
-
-自分に関するものは `/api/me` の下、ルームに関するものは `/api/rooms/{roomId}` の下に置きました。ルームの API は URL のルーム ID とログイン中の人のルームを照らし合わせ、メンバーでなければ 403 を返します。フロントはこれを見て `/join` に戻します。
-
-`roomId` は zod で `/^\d{6}$/` に縛り、`.openapi({ example: "012345" })` を付けます。`busy`、`weight`、`remaining` には `.int().min().max()` を付けます。こうしておくと、Orval が生成する MSW のモックの値も現実に近くなります。
-
-### エラーの形
-
-```json
-{ "code": "WEIGHT_LIMIT_EXCEEDED", "message": "...", "details": { "remaining": 20 } }
-```
-
-フロントは `code` で分岐します。`message` は開発者向けで、画面にそのまま出すものではありません。
-
-| HTTP | `code` | いつ |
-| --- | --- | --- |
-| 400 | `VALIDATION_ERROR` | 入力の形が正しくない (`details` に項目ごとの内容) |
-| 401 | `UNAUTHORIZED` | ログインしていない |
-| 403 | `NOT_ROOM_MEMBER` | そのルームのメンバーではない |
-| 404 | `ROOM_NOT_FOUND` | ルームがない |
-| 404 | `MEMBER_NOT_FOUND` | その人は同じルームにいない |
-| 404 | `TASK_NOT_FOUND` | 自分の履歴にそのタスクがない |
-| 409 | `WEIGHT_LIMIT_EXCEEDED` | 合計が 100% を超える (`details.remaining` に残りの %) |
-| 429 | `RATE_LIMITED` | 入室を短い時間に繰り返した |
-| 503 | `ROOM_ID_EXHAUSTED` | ルーム ID の発行で衝突が続いた |
-
-最初に次の作業を行います。
-
-- `apps/api/src/lib/openapi.ts` の `ErrorSchema` を `{ code, message, details? }` にし、`code` を上の表の enum にする。各ルートの `responses` にこのスキーマを載せ、Orval にエラーの型も生成させる。
-- `requireAuth` の 401 と、zod のバリデーションエラー (`defaultHook`) も同じ形で返す。
-- `packages/api-client` に `isApiError(error, "WEIGHT_LIMIT_EXCEEDED")` のような関数を置き、`ApiError.body` を `code` で絞り込めるようにする。今の `ApiError.body` は `unknown` なので、型が生成されるだけではフロントで使えない。
-
-`/api/auth/*` のエラーは Better Auth の形のままです。
-
-### 自分の状態 (`MyStatus`)
-
-自分のタスクを読む API と変える API は、どれも次の形を返します。
+### MyStatus (変更)
 
 ```json
 {
   "busy": 60,
   "remaining": 40,
-  "statusUpdatedAt": "2026-10-18T09:12:00.000Z",
-  "tasks": [{ "id": 12, "title": "API の実装", "weight": 40, "createdAt": "2026-10-18T09:12:00.000Z" }]
+  "tasks": [{ "id": 12, "title": "API の実装", "weight": 40, "loadedAt": "2026-10-18T09:12:00.000Z" }],
+  "pool": [{ "id": 15, "title": "スライド作成", "weight": 20, "createdAt": "2026-10-18T10:00:00.000Z" }]
 }
 ```
 
-`remaining` はステータス設定画面のスライダーの上限に使います。`tasks` は乗っているタスクだけを `created_at` の新しい順で並べます。
+- `tasks` は乗っているタスクを `loaded_at` の新しい順、`pool` は `created_at` の新しい順で並べる。
+- `statusUpdatedAt` は消す。
 
-### GET /api/me
+### 変わる API
 
-```json
-{
-  "user": { "id": "u_abc", "name": "Alice", "image": "https://..." },
-  "roomId": "012345"
-}
-```
+- `POST /api/me/tasks`: 本文は今と同じ `{ "title", "weight" }`。プールに作るので 100% の判定はせず、201 で `MyStatus` を返す。
+- `POST /api/me/tasks/{taskId}/load`: 本文なし。200 で `MyStatus` を返す。自分のプールにないタスクなら 404 (`TASK_NOT_FOUND`)、合計が 100% を超えるなら 409 (`WEIGHT_LIMIT_EXCEEDED`、`details.remaining` 付き)。
+- `DELETE /api/me/tasks/{taskId}`: プールのタスクを消し、200 で `MyStatus` を返す。自分のプールにないタスク (乗っているタスクや他人のタスク) なら 404 (`TASK_NOT_FOUND`)。乗っているタスクは振り落としでだけ消える。
+- `POST /api/me/tasks/drop`: 0 件でも成功にする点は今と同じ。最終更新はもう持たないので、何も書き込まずに `MyStatus` を返す。
+- `GET /api/rooms/{roomId}`: 各メンバーの `statusUpdatedAt` を `isAway` (boolean) に置き換え、`serverTime` を消す。呼んだ人の `last_seen_at` を更新する。
+- `GET /api/rooms/{roomId}/members/{userId}`: `statusUpdatedAt` と `serverTime` を `isAway` に置き換える。`tasks` は `loaded_at` の新しい順。
 
-ルームに入っていなければ `roomId` は `null` です。フロントの `/` はこれを見て `/rooms/$roomId` か `/join` へ移ります。
-
-### POST /api/rooms
-
-本文はありません。201 で `{ "roomId": "012345" }` を返します。前のルームにいれば抜けます。
-
-### POST /api/rooms/{roomId}/members
-
-本文はありません。`roomId` が 6 桁の数字でなければ 400、ルームがなければ 404、回数の制限を超えたら 429、入れたら 200 で `{ "roomId": "012345" }` を返します。
-
-### GET /api/rooms/{roomId}
-
-ポーリングで数秒ごとに呼ばれます。タスクのタイトルは含めません。
-
-```json
-{
-  "roomId": "012345",
-  "serverTime": "2026-10-18T10:00:00.000Z",
-  "members": [
-    {
-      "userId": "u_abc",
-      "name": "Alice",
-      "image": "https://...",
-      "busy": 60,
-      "statusUpdatedAt": "2026-10-18T09:12:00.000Z",
-      "isMe": true
-    }
-  ]
-}
-```
-
-- `members` は入室順 (`joined_at` の古い順) に並べ、自分も含めます。環状の並びはフロントが `isMe` の位置を起点に作ります。
-- `serverTime` は、経過時間をサーバーの時計で計算するためのものです。端末の時計がずれていても、遠近の段階が狂わないようにします。
-
-### GET /api/rooms/{roomId}/members/{userId}
-
-気球をタップしたときに呼びます。
-
-```json
-{
-  "userId": "u_abc",
-  "name": "Alice",
-  "image": "https://...",
-  "busy": 60,
-  "statusUpdatedAt": "2026-10-18T09:12:00.000Z",
-  "serverTime": "2026-10-18T10:00:00.000Z",
-  "tasks": [{ "id": 12, "title": "API の実装", "weight": 40, "createdAt": "2026-10-18T09:12:00.000Z" }]
-}
-```
-
-`tasks` は乗っているタスクだけを `created_at` の新しい順で返します。自分が同じルームにいなければ 403、その人が同じルームにいなければ 404 です。
-
-### GET /api/me/tasks
-
-`MyStatus` を返します。
-
-### POST /api/me/tasks
-
-```json
-{ "title": "API の実装", "weight": 40 }
-```
-
-`title` は前後の空白を除いて 1 から 30 文字、`weight` は 1 から 100 の整数です。201 で、乗せた後の `MyStatus` を返します。合計が 100% を超えるなら 409 です。
-
-### POST /api/me/tasks/drop
-
-本文はありません。乗っているタスクをすべて落とし、200 で落とした後の `MyStatus` を返します。乗っているタスクが 0 件でも成功にして、最終更新だけを今にします (空の気球を揺らすと「まだ暇」と伝わる)。
-
-揺れが強いかどうかの判定はフロントで行います。サーバーは呼ばれたら落とすだけです。
-
-### GET /api/me/history
-
-```json
-{
-  "tasks": [{ "id": 9, "title": "デザインの確認", "weight": 30, "droppedAt": "2026-10-18T08:00:00.000Z" }]
-}
-```
-
-`dropped_at` の新しい順に、最新 50 件まで返します。同じタイトルのタスクもまとめずにそのまま返します (未決事項を参照)。
-
-### POST /api/me/history/{taskId}/reload
-
-```json
-{ "weight": 30 }
-```
-
-履歴のタスクを乗せ直します。`state` を `on` に、`weight` を受け取った値に、`created_at` を今にして、`dropped_at` を消します。200 で乗せ直した後の `MyStatus` を返します。自分の履歴にないタスク (他人のタスク、乗っているタスクを含む) なら 404、合計が超えるなら 409 です。
-
-## ポーリング
-
-- フロントは TanStack Query の `refetchInterval` で `GET /api/rooms/{roomId}` を 3 秒ごとに呼ぶ。画面が裏に回っている間は止める (TanStack Query の既定の動き)。
-- 自分のタスクを変えたら、フロントは応答の `MyStatus` で自分の状態を置き換え、ルームの情報と履歴を取り直す。
-- サーバー側は、メンバー、忙しさ、最終更新を 1 回のクエリで返す (`room_member` に `user` と `user_status` を結合し、task の合計をまとめて取る)。インデックスがあるので、ルームの人数が数十人でも軽い。
+エラーの形 (`{ code, message, details? }`) と `code` の一覧は今と同じです。`TASK_NOT_FOUND` は「自分のプールにない」という意味に変わります。
 
 ## テスト
 
-[write-tests](../.claude/skills/write-tests/SKILL.md) の skill に従い、要件ごとにテストを書きます。最初に用意するものの例です。
+[write-tests](../.claude/skills/write-tests/SKILL.md) に従います。履歴と乗せ直しのテストは消し、次を足します。
 
-- ログイン
-  - ログインしていない人は、ルームやタスクの API を呼べない
-- ルーム
-  - ルームを作るとそのルームに入った状態になる
-  - 6 桁の ID を入れると同じルームに入れる
-  - 6 桁の数字でない ID では入れない
-  - ない ID のルームには入れない
-  - 入室を短い時間に繰り返すと断られる
-  - 別のルームに入ると、前のルームのメンバー一覧から消える
-  - 同じルームに入り直しても並び順は変わらない
-  - ルームを移っただけでは最終更新は変わらない
-  - メンバーでないルームの情報は見られない
-- タスク
-  - タスクを乗せると忙しさが増える
-  - 前後の空白だけのタイトルでは乗せられない
-  - 合計が 100% を超えるタスクは乗せられない
-  - タスクを落とすと忙しさが 0% になり、履歴に入る
-  - 乗っているタスクがなくても揺らすと最終更新が新しくなる
-  - 履歴から乗せ直すと、重さと乗せた日時が新しくなる
-  - 乗っているタスクは乗せ直せない
-  - 他人の履歴のタスクは乗せ直せない
-- 気球の詳細
-  - 同じルームの人のタスクのタイトルが見られる
-  - ルームの一覧にはタスクのタイトルが含まれない
-  - ほかのルームの人の詳細は見られない
+- 作ったタスクはプールに入り、忙しさは変わらない
+- プールのタスクを乗せると忙しさが増える
+- 合計が 100% を超えるタスクは乗せられず、プールに残る
+- 乗っているタスクや他人のタスクは乗せられない
+- 振り落としたタスクは気球からもプールからも消える
+- プールのタスクは消せる
+- 乗っているタスクや他人のタスクは、消す API では消せない
+- ルームの情報を取ると、自分は離れていない扱いになる
+- しきい値より長く開いていない人は、離れている扱いになる
 
 ## 作る順番
 
-1. **API のスキーマだけを先に書いて `pnpm gen` する**。ハンドラは仮の値を返すだけでよい。これでフロントは MSW のモックで画面を作り始められる。
-2. エラーの形をそろえる (`VALIDATION_ERROR` などを共通の形で返し、`isApiError` を用意する)。
-3. DB のスキーマとマイグレーション。
-4. `GET /api/me`、ルームの作成と入室、入室の回数の制限。
-5. タスクを乗せる、落とす、履歴、乗せ直し。
-6. ルームの状態と気球の詳細。
-7. デモ用のシードデータ。
-8. 本番へのデプロイ。
-
-### シードデータ
-
-1 つのルームに、忙しさと最終更新がばらばらなダミーメンバーを数人入れ、環状の並びと遠近を 1 人でも見せられるようにします。
-
-- `apps/api/seed/demo.sql` に、ダミーの `user`、`room`、`room_member`、`user_status`、`task` の行を書く。ダミーの人は OAuth の `account` を持たないので、ログインはできない。
-- 最終更新は「今から何時間前」で決めたいので、SQL の中で `unixepoch('subsec') * 1000` から引いて作る。流すたびに遠近の段階がそろう。
-- ローカルは `wrangler d1 execute <DB> --local --file seed/demo.sql` で流す。本番の D1 に流すのは、デモの前にユーザーの指示があったときだけにする。
+1. API のスキーマを変えて `pnpm gen` する。`statusUpdatedAt` と `serverTime` を消すとフロントの遠近の表示が型エラーになるので、フロントの差し替えと同じ PR にするか、フロントが移るまでフィールドを残す。
+2. DB のスキーマとマイグレーション。ローカルは `pnpm db:migrate:local`、本番は main へのマージ後のデプロイで当たる。
+3. ハンドラとテスト。
+4. シードデータ (`apps/api/seed/demo.sql`) を直す。`dropped` のタスクを消してプールのタスクを足し、`last_seen_at` をばらして、離れている人を 1 人以上入れる。
 
 ## 未決事項
 
-| 項目 | 案 | 理由 |
+| 項目 | 案 | 決まるまでの扱い |
 | --- | --- | --- |
-| タイトルの長さの上限 | 30 文字 | スマホの詳細ポップアップで 1、2 行に収まる |
-| 履歴の件数と、同じタイトルの扱い | 最新 50 件。まとめない | まとめると「どの重さで乗せ直すか」が曖昧になる。必要ならフロントで表示をまとめる |
-| ルームから抜けるだけの操作 | 作らない | concept.md にない。別のルームに入れば抜けられる |
-| 誰もいなくなったルーム | 残す | ID は 100 万通りあり、ハッカソンの規模では枯渇しない |
-| 空の気球を揺らしたときの扱い | 最終更新だけを新しくする | 手が空いている人が「まだ暇」と伝えられるようにするため |
-| ポーリングの間隔 | 3 秒 | デモで動きがすぐ伝わり、D1 の読み取りも無料枠に収まる |
-| 入室の回数の制限 | 1 人 1 分に 10 回 | 普通に使う分には当たらず、総当たりは遅くできる |
+| 乗せたタスクを、振らずにプールへ戻す操作 | 作らない | API を作らない。作るなら `POST /api/me/tasks/{taskId}/unload` を足す |
+| 重さと籠の大きさの対応 | フロントで決める | API に影響しない |
+| 離れていると見なすしきい値 | 3 時間 | `AWAY_THRESHOLD_MINUTES` で変える |
 
-## フロントからの相談と依頼への回答
-
-フロントの設計 ([docs/design-frontend.md](design-frontend.md)) から届いた 4 つは、すべて受けて上の設計に反映しました。
-
-| 相談と依頼 | 回答 | 反映した箇所 |
-| --- | --- | --- |
-| 1. エラーの形を OpenAPI に載せてほしい | 受ける。`code` を enum にし、`isApiError` で絞り込めるようにする | API の「エラーの形」 |
-| 2. モックで使う値の例を付けてほしい | 受ける。`roomId` の形と数値の範囲を zod に書く | API の冒頭 |
-| 3. 更新系の API で更新後の状態を返してほしい | 受ける。3 つとも `MyStatus` を返す | API の「自分の状態」 |
-| 4. タイトルの上限を CHECK 制約に入れないでほしい | 受ける。DB は空でないことだけを縛る | DB の task |
+合計が 100% を超えるドロップは起きにくい想定です。ただし重さの合計が 60% のときに 50% のブロックを乗せる、といったことはできてしまうので、サーバーは 409 で断ります。画面での見せ方は、起きたときに決めます。
