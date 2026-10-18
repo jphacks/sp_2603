@@ -74,8 +74,8 @@ Readme · MD
 
 ##### その他
 
-- 環境構築に力を入れました。
-  GitHub ActionsによるCIやAgent SkillsやAGENTS.mdでコード品質を担保しました。 ( [.github/workflows/ci.yml](https://github.com/jphacks/sp_2603/blob/main/.github/workflows/ci.yml) [skills-lock.json](https://github.com/jphacks/sp_2603/blob/main/skills-lock.json) [AGENTS.md](https://github.com/jphacks/sp_2603/blob/main/AGENTS.md) )
-  GitHub ActionsによるCD (deploy)を構築し、mainにpushされた際に Cloudflare Workers に自動デプロイされるようにしました。 [.github/workflows/deploy.yml](https://github.com/jphacks/sp_2603/blob/main/.github/workflows/deploy.yml)
-  OpenAPIを半自動的に作成するようにし、フロントエンド班も分かりやすく作業を進められるようにし、開発の速度感を速めるようにした。 [ea2bf38a056784f2b9ef9b7af6e2c7cb2dd926c5](https://github.com/jphacks/sp_2603/commit/ea2bf38a056784f2b9ef9b7af6e2c7cb2dd926c5)
-  
+* API の型を zod のスキーマ 1 か所にまとめ、`pnpm gen` で OpenAPI の定義、TanStack Query の hooks、型、MSW のモックまで生成する仕組み。フロントエンド班は API の完成を待たずに、モックを相手に画面を作り進められる。生成し忘れたまま push しても、CI で気付ける。([gen-openapi.ts](https://github.com/jphacks/sp_2603/blob/main/apps/api/scripts/gen-openapi.ts)、[orval.config.ts](https://github.com/jphacks/sp_2603/blob/main/packages/api-client/orval.config.ts)、[ea2bf38](https://github.com/jphacks/sp_2603/commit/ea2bf38a056784f2b9ef9b7af6e2c7cb2dd926c5))
+* GitHub Actions による CI と自動デプロイ。PR ごとに lint、型チェック、ビルド、テスト、生成物の差分を確認し、main にマージすると Cloudflare Workers へのデプロイと本番のデータベースの更新まで自動で行う。ドキュメントだけを変えた PR では CI を省く。([ci.yml](https://github.com/jphacks/sp_2603/blob/main/.github/workflows/ci.yml)、[deploy.yml](https://github.com/jphacks/sp_2603/blob/main/.github/workflows/deploy.yml))
+* 本番と同じ Workers の実行環境と D1 の上で動かすテスト。データベースをモックせず、HTTP リクエストを送って API の振る舞いを確かめる。テスト名は「ログインしていない人はルームから抜けられない」のように、要件をそのまま文にした。([apps/api/test](https://github.com/jphacks/sp_2603/tree/main/apps/api/test))
+* AI エージェントにもメンバーと同じルールで開発させる仕組み。ブランチ、コミット、テストの決まりを AGENTS.md に書き、API や画面の追加といったよくある作業の手順を Agent Skills にまとめた。Claude Code や Codex に任せても、メンバーが書くのと同じ形のコードとコミットになる。([AGENTS.md](https://github.com/jphacks/sp_2603/blob/main/AGENTS.md)、[.claude/skills](https://github.com/jphacks/sp_2603/tree/main/.claude/skills)、[skills-lock.json](https://github.com/jphacks/sp_2603/blob/main/skills-lock.json))
+
