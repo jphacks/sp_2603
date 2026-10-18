@@ -113,6 +113,12 @@ Cloudflare Workers Builds は、Cloudflare の GitHub アプリを jphacks org �
    | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | 本番用の OAuth クライアント |
    | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | 本番用の OAuth App |
 
+5. 同じ画面で、次の変数を「Text」として登録する。`wrangler.jsonc` に `keep_vars: true` があるので、デプロイしても消えません。値を変えると、その場で新しいバージョンがデプロイされます。
+
+   | 名前 | 値 |
+   | --- | --- |
+   | `AWAY_THRESHOLD_MINUTES` | 最後に画面を開いてからこの分数が過ぎた人を、離れている扱いにする。デモ用に `30`。ないときも 30 分になる |
+
 ### 手動でデプロイする場合
 
 ```sh
