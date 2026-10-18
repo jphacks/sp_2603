@@ -10,6 +10,9 @@ export const createRoom = async (headers: Headers) => {
 export const joinRoom = (headers: Headers, roomId: string) =>
   request(`/api/rooms/${roomId}/members`, { method: "POST", headers });
 
+export const leaveRoom = (headers: Headers) =>
+  request("/api/me/room", { method: "DELETE", headers });
+
 export const addTask = (headers: Headers, task: { title: string; weight: number }) =>
   request("/api/me/tasks", { method: "POST", headers, body: task });
 

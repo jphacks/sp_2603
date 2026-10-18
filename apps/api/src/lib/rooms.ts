@@ -18,6 +18,19 @@ const isRoomIdConflict = (error: unknown): boolean => {
   );
 };
 
+// 空になったルームを消し、その ID をほかのルームで使えるようにする。作った人が抜けても、誰かが残っていれば消さない。
+const deleteEmptyRooms = (db: Db) =>
+  db
+    .delete(room)
+    .where(
+      notExists(
+        db
+          .select({ userId: roomMember.userId })
+          .from(roomMember)
+          .where(eq(roomMember.roomId, room.id)),
+      ),
+    );
+
 // 入室は 3 文を 1 つの batch で実行する。同じルームに入り直したときは joined_at を変えず、並び順を保つ。
 const joinStatements = (db: Db, userId: string, roomId: string, now: Date) =>
   [
@@ -31,17 +44,7 @@ const joinStatements = (db: Db, userId: string, roomId: string, now: Date) =>
       }),
     // 最終更新は人に付くので、ルームを移っただけでは変えない。
     db.insert(userStatus).values({ userId, updatedAt: now }).onConflictDoNothing(),
-    // 移る前のルームが空になったら消し、その ID をほかのルームで使えるようにする。作った人が抜けても、誰かが残っていれば消さない。
-    db
-      .delete(room)
-      .where(
-        notExists(
-          db
-            .select({ userId: roomMember.userId })
-            .from(roomMember)
-            .where(eq(roomMember.roomId, room.id)),
-        ),
-      ),
+    deleteEmptyRooms(db),
   ] as const;
 
 /** ルームを作って入る。空いている ID が見つからなければ null。 */
@@ -80,6 +83,10 @@ export const enterRoom = async (db: Db, userId: string, roomId: string, now: Dat
     throw error;
   }
 };
+
+/** 今いるルームから抜ける。ルームに入っていなくても何もせずに終わる。 */
+export const leaveRoom = (db: Db, userId: string) =>
+  db.batch([db.delete(roomMember).where(eq(roomMember.userId, userId)), deleteEmptyRooms(db)]);
 
 export const findMyRoomId = async (db: Db, userId: string) =>
   (

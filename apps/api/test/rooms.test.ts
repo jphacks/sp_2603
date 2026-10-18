@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { signInAsNewUser } from "./helpers/auth";
 import { request } from "./helpers/request";
-import { createRoom, joinRoom } from "./helpers/room";
+import { createRoom, joinRoom, leaveRoom } from "./helpers/room";
 
 type RoomBody = { members: { userId: string; name: string; isMe: boolean }[] };
 
@@ -116,6 +116,45 @@ describe("ルーム", () => {
     const response = await joinRoom(bob.headers, roomId);
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({ code: "ROOM_NOT_FOUND" });
+  });
+
+  it("ルームから抜けると、どのルームにも入っていない状態になり、メンバー一覧から消える", async () => {
+    const alice = await signInAsNewUser({ name: "Alice" });
+    const bob = await signInAsNewUser({ name: "Bob" });
+    const roomId = await createRoom(alice.headers);
+    await joinRoom(bob.headers, roomId);
+
+    const response = await leaveRoom(bob.headers);
+
+    expect(response.status).toBe(204);
+    const me = await request("/api/me", { headers: bob.headers });
+    expect(await me.json()).toMatchObject({ roomId: null });
+    const members = await getMembers(alice.headers, roomId);
+    expect(members.map(({ name }) => name)).toEqual(["Alice"]);
+  });
+
+  it("最後の人が抜けたルームは消え、その ID では入れなくなる", async () => {
+    const alice = await signInAsNewUser();
+    const bob = await signInAsNewUser();
+    const roomId = await createRoom(alice.headers);
+
+    await leaveRoom(alice.headers);
+
+    expect((await joinRoom(bob.headers, roomId)).status).toBe(404);
+  });
+
+  it("ルームに入っていなくても、抜ける操作は成功する", async () => {
+    const { headers } = await signInAsNewUser();
+
+    const response = await leaveRoom(headers);
+
+    expect(response.status).toBe(204);
+  });
+
+  it("ログインしていない人はルームから抜けられない", async () => {
+    const response = await leaveRoom(new Headers());
+
+    expect(response.status).toBe(401);
   });
 
   it("同じルームに入り直しても並び順は変わらない", async () => {
