@@ -1,16 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { authClient, sessionQueryOptions } from "@/lib/auth-client";
+import { sessionQueryOptions, signOut } from "@/lib/auth-client";
 
 export function UserMenu() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: session, isPending } = useQuery(sessionQueryOptions);
 
-  const signOut = async () => {
-    await authClient.signOut();
-    // 前のユーザーのデータを残さないよう、キャッシュを丸ごと消す。
-    queryClient.clear();
+  const handleSignOut = async () => {
+    await signOut(queryClient);
     await navigate({ to: "/" });
   };
 
@@ -28,7 +26,7 @@ export function UserMenu() {
         <img src={session.user.image} alt="" className="size-8 rounded-full" />
       )}
       <span className="text-sm">{session.user.name}</span>
-      <button type="button" className="text-sm underline" onClick={signOut}>
+      <button type="button" className="text-sm underline" onClick={handleSignOut}>
         ログアウト
       </button>
     </div>
