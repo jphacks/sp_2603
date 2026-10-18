@@ -11,15 +11,17 @@ import {
   useLeaveMyRoom,
   useLoadMyTask,
 } from "@fllooat/api-client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AddTaskDialog } from "@/components/add-task-dialog";
+import { BalloonSheet } from "@/components/balloon-sheet";
 import { BalloonSky } from "@/components/balloon-sky";
-import { MemberDetailDialog } from "@/components/member-detail-dialog";
+import { RoomMenu } from "@/components/room-menu";
 import { useApplyMyStatus } from "@/hooks/use-apply-my-status";
 import { useDeviceShake } from "@/hooks/use-device-shake";
+import { signOut } from "@/lib/auth-client";
+import { assignBalloonColors } from "@/lib/balloon-colors";
 import { isRoomId } from "@/lib/room-id";
 
 /** 気球の空と、開いている気球の詳細を取り直す間隔。 */
@@ -33,25 +35,42 @@ export const Route = createFileRoute("/_authed/rooms/$roomId")({
 });
 
 const addTaskErrorMessageOf = (error: unknown) => {
-  if (isApiError(error, "WEIGHT_LIMIT_EXCEEDED")) {
-    return `あと ${error.body.details?.remaining ?? 0}% までしかのせられません`;
-  }
   if (isApiError(error, "VALIDATION_ERROR")) return "タスク名と重さを確かめてください";
+  if (isApiError(error, "RATE_LIMITED")) return "少し待ってからもう一度試してください";
   if (error) return "もう一度試してください";
   return undefined;
 };
+
+const loadTaskErrorMessageOf = (error: unknown) => {
+  if (isApiError(error, "WEIGHT_LIMIT_EXCEEDED")) {
+    return `あと ${error.body.details?.remaining ?? 0}% までしかのせられません`;
+  }
+  // ほかの端末で乗せたか消したときは、取り直したプールを見ればわかるので出さない。
+  if (isApiError(error, "TASK_NOT_FOUND")) return undefined;
+  if (error) return "もう一度試してください";
+  return undefined;
+};
+
+/** 下から伸びるシートで見ている気球。自分なら編集画面、他人ならタスクを見るだけの画面になる。 */
+type SheetTarget = { kind: "mine" } | { kind: "member"; userId: string };
 
 function RoomPage() {
   const { roomId } = Route.useParams();
   const navigate = useNavigate();
   const applyMyStatus = useApplyMyStatus(roomId);
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string>();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  // 閉じる動きの間も中身を出しておくため、閉じても最後に開いた気球を覚えておく。
+  const [sheetTarget, setSheetTarget] = useState<SheetTarget>({ kind: "mine" });
+  const selectedUserId = sheetTarget.kind === "member" ? sheetTarget.userId : undefined;
 
   const room = useGetRoom(roomId, { query: { refetchInterval: POLLING_INTERVAL_MS } });
   const myTasks = useGetMyTasks();
   const memberDetail = useGetRoomMember(roomId, selectedUserId ?? "", {
-    query: { enabled: selectedUserId !== undefined, refetchInterval: POLLING_INTERVAL_MS },
+    query: {
+      enabled: isSheetOpen && selectedUserId !== undefined,
+      refetchInterval: POLLING_INTERVAL_MS,
+    },
   });
 
   // 自分のルームではない URL を開いたときや、ほかの端末でルームを移ったり抜けたりしたとき。
@@ -71,34 +90,44 @@ function RoomPage() {
       },
     },
   });
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    await signOut(queryClient);
+    await navigate({ to: "/login" });
+  };
 
-  // 開いている詳細の人がルームを抜けたら閉じる。
+  // 見ている人がルームを抜けたら閉じる。
   useEffect(() => {
-    if (isApiError(memberDetail.error, "MEMBER_NOT_FOUND")) setSelectedUserId(undefined);
+    if (isApiError(memberDetail.error, "MEMBER_NOT_FOUND")) setIsSheetOpen(false);
   }, [memberDetail.error]);
 
-  const createPoolTask = useAddMyTask();
-  const loadPoolTask = useLoadMyTask();
-  const deletePoolTask = useDeleteMyTask();
-  // TODO: プールの画面ができるまでは、作ったタスクをすぐに気球へ乗せる。乗せられなければプールから消す。
-  const addTask = useMutation({
-    mutationFn: async ({ title, weight }: { title: string; weight: number }) => {
-      const created = await createPoolTask.mutateAsync({ data: { title, weight } });
-      const taskId = created.data.pool[0]?.id ?? 0;
-      try {
-        return await loadPoolTask.mutateAsync({ taskId });
-      } catch (error) {
-        await deletePoolTask.mutateAsync({ taskId }).catch(() => {});
-        throw error;
-      }
+  const addTask = useAddMyTask({
+    mutation: {
+      onSuccess: ({ data }) => {
+        applyMyStatus(data);
+        setIsAddTaskOpen(false);
+      },
     },
-    onSuccess: ({ data }) => {
-      applyMyStatus(data);
-      setIsAddTaskOpen(false);
+  });
+  const loadTask = useLoadMyTask({
+    mutation: {
+      onSuccess: ({ data }) => applyMyStatus(data),
+      // 上限を超えたときやほかの端末で変わったときは、今の状態を取り直す。
+      onError: (error) => {
+        if (isApiError(error, "WEIGHT_LIMIT_EXCEEDED") || isApiError(error, "TASK_NOT_FOUND")) {
+          myTasks.refetch();
+        }
+      },
     },
-    // 上限を超えたときは、スライダーの上限を今の残りに合わせる。
-    onError: (error) => {
-      if (isApiError(error, "WEIGHT_LIMIT_EXCEEDED")) myTasks.refetch();
+  });
+  const deleteTask = useDeleteMyTask({
+    mutation: {
+      onSuccess: ({ data }) => applyMyStatus(data),
+      // ほかの端末で消したか落としたときは、今の状態を取り直す。
+      onError: (error) => {
+        if (isApiError(error, "TASK_NOT_FOUND")) myTasks.refetch();
+      },
     },
   });
   const dropTasks = useDropMyTasks({ mutation: { onSuccess: ({ data }) => applyMyStatus(data) } });
@@ -108,16 +137,45 @@ function RoomPage() {
   };
   const { permission, requestPermission } = useDeviceShake(dropAllTasks);
 
-  const selectMember = (member: RoomMember) => setSelectedUserId(member.userId);
-  const selectedMember = room.data?.data.members.find((m) => m.userId === selectedUserId);
+  const members = room.data?.data.members;
+  const colors = useMemo(
+    () =>
+      assignBalloonColors(
+        roomId,
+        (members ?? []).map((m) => m.userId),
+      ),
+    [roomId, members],
+  );
+
+  const openSheet = (target: SheetTarget) => {
+    loadTask.reset();
+    setSheetTarget(target);
+    setIsSheetOpen(true);
+  };
+  const selectMember = (member: RoomMember) =>
+    openSheet(member.isMe ? { kind: "mine" } : { kind: "member", userId: member.userId });
+  const openAddTask = () => {
+    addTask.reset();
+    setIsAddTaskOpen(true);
+  };
+
+  const sheetMember = members?.find((m) =>
+    sheetTarget.kind === "mine" ? m.isMe : m.userId === sheetTarget.userId,
+  );
+  const centerAction = !isSheetOpen ? "edit" : sheetTarget.kind === "mine" ? "addTask" : "close";
+  const onCenterClick = {
+    edit: () => openSheet({ kind: "mine" }),
+    addTask: openAddTask,
+    close: () => setIsSheetOpen(false),
+  }[centerAction];
 
   return (
     <section className="relative flex h-full flex-col bg-linear-to-b from-[#0050DC] via-[#2B95EE] to-[#B4E1F7]">
       <div className="min-h-0 flex-1">
         {room.data ? (
           <BalloonSky
-            roomId={roomId}
             members={room.data.data.members}
+            colors={colors}
             onSelectMember={selectMember}
             onShakeMyBalloon={dropAllTasks}
           />
@@ -128,15 +186,6 @@ function RoomPage() {
           </p>
         )}
       </div>
-      {/* TODO: ルームのメニューのデザインが届いたら、そこに移す。 */}
-      <button
-        type="button"
-        disabled={leaveRoom.isPending}
-        onClick={() => leaveRoom.mutate()}
-        className="absolute top-3 right-3 rounded-full bg-white/30 px-3 py-1 text-xs text-white backdrop-blur disabled:opacity-50"
-      >
-        ルームを出る
-      </button>
       {permission === "prompt" && (
         <button
           type="button"
@@ -146,30 +195,48 @@ function RoomPage() {
           スマホを振ってタスクを落とせるようにする
         </button>
       )}
-      <button
-        type="button"
-        onClick={() => {
-          addTask.reset();
-          setIsAddTaskOpen(true);
-        }}
-        className="flex h-[125px] shrink-0 flex-col items-center justify-center gap-2 rounded-t-[50%_48px] bg-[#0057E0] pt-4 pb-[env(safe-area-inset-bottom)] text-white"
-      >
-        <PlusIcon className="size-11" strokeWidth={2.5} />
-        <span className="text-sm font-bold">タスクをのせる</span>
-      </button>
+      {/* シート (z-40) を開いている間も、メニューはその上に出したままにする。 */}
+      <RoomMenu
+        className="relative z-50"
+        centerAction={centerAction}
+        isPending={leaveRoom.isPending || isSigningOut}
+        onSignOut={handleSignOut}
+        onCenterClick={onCenterClick}
+        onSwitchRoom={() => leaveRoom.mutate()}
+      />
+      {sheetMember && (
+        <BalloonSheet
+          open={isSheetOpen}
+          onClose={() => setIsSheetOpen(false)}
+          isMine={sheetTarget.kind === "mine"}
+          name={sheetMember.name}
+          image={sheetMember.image}
+          color={colors.get(sheetMember.userId) ?? "#FFFFFF"}
+          {...(sheetTarget.kind === "mine"
+            ? {
+                busy: myTasks.data?.data.busy ?? sheetMember.busy,
+                tasks: myTasks.data?.data.tasks,
+                deletingTaskId: deleteTask.isPending ? deleteTask.variables.taskId : undefined,
+                onDeleteTask: (taskId: number) => deleteTask.mutate({ taskId }),
+                pool: {
+                  tasks: myTasks.data?.data.pool,
+                  onLoad: (taskId: number) => loadTask.mutate({ taskId }),
+                  loadingTaskId: loadTask.isPending ? loadTask.variables.taskId : undefined,
+                  errorMessage: loadTaskErrorMessageOf(loadTask.error),
+                },
+              }
+            : {
+                busy: memberDetail.data?.data.busy ?? sheetMember.busy,
+                tasks: memberDetail.data?.data.tasks,
+              })}
+        />
+      )}
       <AddTaskDialog
         open={isAddTaskOpen}
         onOpenChange={setIsAddTaskOpen}
-        remaining={myTasks.data?.data.remaining ?? 0}
         isPending={addTask.isPending}
         errorMessage={addTaskErrorMessageOf(addTask.error)}
-        onAdd={(title, weight) => addTask.mutate({ title, weight })}
-      />
-      <MemberDetailDialog
-        open={selectedUserId !== undefined}
-        member={memberDetail.data?.data}
-        isMe={selectedMember?.isMe ?? false}
-        onClose={() => setSelectedUserId(undefined)}
+        onAdd={(title, weight) => addTask.mutate({ data: { title, weight } })}
       />
     </section>
   );
