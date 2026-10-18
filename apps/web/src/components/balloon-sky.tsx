@@ -2,7 +2,7 @@ import type { RoomMember } from "@fllooat/api-client";
 import useEmblaCarousel from "embla-carousel-react";
 import { motion } from "motion/react";
 import { useMemo, useRef } from "react";
-import { BALLOON_ANCHOR_PX, Balloon } from "@/components/balloon";
+import { BALLOON_ANCHOR_PX, BALLOON_BELOW_ANCHOR_PX, Balloon } from "@/components/balloon";
 import { useColumnCount } from "@/hooks/use-column-count";
 import { myColumnIndex, placeAroundMe, ringFromMe } from "@/lib/balloon-ring";
 import { cn } from "@/lib/utils";
@@ -12,12 +12,20 @@ const MIN_COLUMN_WIDTH_PX = 130;
 const MIN_COLUMNS = 3;
 const TICK_COUNT = 11;
 
-// 名前の行、気球が動く範囲、% の行の高さ。目盛りを気球の範囲にそろえるため、列と目盛りで同じ値を使う。
+// 名前の行と気球が動く範囲の上端。目盛りを気球の範囲にそろえるため、列と目盛りで同じ値を使う。
 // ホーム画面から開くと上端がダイナミックアイランドの裏になるので、名前の行は高さを変えずに中身だけ下げる。
 const NAME_ROW = "h-34 pt-[env(safe-area-inset-top)]";
-const PERCENT_ROW = "h-28";
 const SKY_TOP = "top-34";
-const SKY_BOTTOM = "bottom-28";
+/** % の行の上端から空の下端 (メニューの上端) までの高さ。デザインの位置に合わせた。 */
+const PERCENT_LABEL_TOP_PX = 100;
+const PERCENT_LABEL_GAP_PX = 6;
+/**
+ * 気球が動く範囲の下端 (100%) から空の下端までの高さ。% の行の高さにもなる。
+ * 100% で籠が一番大きくなっても、籠が % の行と重ならない高さにする。
+ */
+const SKY_BOTTOM_PX = Math.ceil(
+  PERCENT_LABEL_TOP_PX + PERCENT_LABEL_GAP_PX + BALLOON_BELOW_ANCHOR_PX,
+);
 
 type BalloonSkyProps = {
   members: RoomMember[];
@@ -150,7 +158,10 @@ function SkyColumn({
           />
         </motion.div>
       </div>
-      <div className={cn(PERCENT_ROW, "flex shrink-0 justify-center pt-10")}>
+      <div
+        className="flex shrink-0 justify-center"
+        style={{ height: SKY_BOTTOM_PX, paddingTop: SKY_BOTTOM_PX - PERCENT_LABEL_TOP_PX }}
+      >
         <span className={cn("text-[15px]", labelColor)}>{member.busy}%</span>
       </div>
     </div>
@@ -164,8 +175,8 @@ function ScaleTicks() {
       className={cn(
         "pointer-events-none absolute inset-x-0 flex flex-col justify-between",
         SKY_TOP,
-        SKY_BOTTOM,
       )}
+      style={{ bottom: SKY_BOTTOM_PX }}
       aria-hidden="true"
     >
       {Array.from({ length: TICK_COUNT }, (_, index) => (

@@ -1,12 +1,14 @@
 import { motion } from "motion/react";
 import { useMemo } from "react";
-import { BalloonFigure } from "@/components/balloon-figure";
+import { BalloonFigure, balloonFigureHeight } from "@/components/balloon-figure";
 import { createShakeDetector, DRAG_SHAKE } from "@/lib/shake-detector";
 
 /** 空の画面での風船の直径。 */
 const ENVELOPE_SIZE_PX = 48;
 /** 気球の上端からアイコンの中心までの距離。高さの目盛りにアイコンの中心を合わせるのに使う。 */
 export const BALLOON_ANCHOR_PX = ENVELOPE_SIZE_PX / 2;
+/** アイコンの中心から、一番大きい籠の下端までの距離。 */
+export const BALLOON_BELOW_ANCHOR_PX = balloonFigureHeight(ENVELOPE_SIZE_PX) - BALLOON_ANCHOR_PX;
 
 type BalloonProps = {
   name: string;

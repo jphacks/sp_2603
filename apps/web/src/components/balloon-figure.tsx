@@ -11,6 +11,10 @@ const STRING_BOTTOM_INSET_RATIO = 0.17;
 
 const SPRING = { type: "spring", stiffness: 120, damping: 16 } as const;
 
+/** 籠が一番大きい (100%) ときの、気球の絵の高さ (px)。忙しさが変わっても絵の高さは変えない。 */
+export const balloonFigureHeight = (size: number) =>
+  size * BASKET_TOP_RATIO + basketSize(100, size).height;
+
 type BalloonFigureProps = {
   /** 風船 (アイコンの丸) の直径 (px)。 */
   size: number;
@@ -29,10 +33,7 @@ export function BalloonFigure({ size, image, color, busy }: BalloonFigureProps) 
   const stringBottomX = basketLeft + basket.width * STRING_BOTTOM_INSET_RATIO;
 
   return (
-    <span
-      className="relative block"
-      style={{ width: size, height: basketTop + basketSize(100, size).height }}
-    >
+    <span className="relative block" style={{ width: size, height: balloonFigureHeight(size) }}>
       <svg
         className="absolute top-0 left-0 overflow-visible"
         width={size}
