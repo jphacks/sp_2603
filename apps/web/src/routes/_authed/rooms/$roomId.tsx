@@ -186,15 +186,21 @@ function RoomPage() {
           </p>
         )}
       </div>
+      {/* TODO: 許可を求めるダイアログに置き換える。それまでは % の行と重ならないよう、名前の行の下に置く。
+          名前はセーフエリアの下の残りの高さの中央に来るので、セーフエリアの半分だけ下げる。 */}
       {permission === "prompt" && (
         <button
           type="button"
           onClick={requestPermission}
-          className="mx-auto mb-3 rounded-full bg-white/30 px-4 py-1.5 text-xs text-white backdrop-blur"
+          className="absolute top-[calc(88px+env(safe-area-inset-top)/2)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/30 px-4 py-1.5 text-xs text-white backdrop-blur"
         >
           スマホを振ってタスクを落とせるようにする
         </button>
       )}
+      {/* このルーム ID を伝えて、ほかの人を招待する。気球の空の高さを変えないよう、メニューの上に重ねる。 */}
+      <p className="absolute inset-x-0 bottom-[calc(147px+env(safe-area-inset-bottom))] text-center text-[13px] text-[#E6E6E6] text-shadow-[0_0_4px_rgba(0,0,0,0.5)]">
+        ルームID：{roomId}
+      </p>
       {/* シート (z-40) を開いている間も、メニューはその上に出したままにする。 */}
       <RoomMenu
         className="relative z-50"
