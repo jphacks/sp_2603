@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, notExists, sql } from "drizzle-orm";
 import type { createDb } from "../db/client";
 import { room, roomMember, task, user, userStatus } from "../db/schema";
 
@@ -18,7 +18,7 @@ const isRoomIdConflict = (error: unknown): boolean => {
   );
 };
 
-// 入室は 2 文を 1 つの batch で実行する。同じルームに入り直したときは joined_at を変えず、並び順を保つ。
+// 入室は 3 文を 1 つの batch で実行する。同じルームに入り直したときは joined_at を変えず、並び順を保つ。
 const joinStatements = (db: Db, userId: string, roomId: string, now: Date) =>
   [
     db
@@ -31,6 +31,17 @@ const joinStatements = (db: Db, userId: string, roomId: string, now: Date) =>
       }),
     // 最終更新は人に付くので、ルームを移っただけでは変えない。
     db.insert(userStatus).values({ userId, updatedAt: now }).onConflictDoNothing(),
+    // 移る前のルームが空になったら消し、その ID をほかのルームで使えるようにする。作った人が抜けても、誰かが残っていれば消さない。
+    db
+      .delete(room)
+      .where(
+        notExists(
+          db
+            .select({ userId: roomMember.userId })
+            .from(roomMember)
+            .where(eq(roomMember.roomId, room.id)),
+        ),
+      ),
   ] as const;
 
 /** ルームを作って入る。空いている ID が見つからなければ null。 */
@@ -54,8 +65,21 @@ export const createAndJoinRoom = async (db: Db, userId: string, now: Date) => {
 export const roomExists = async (db: Db, roomId: string) =>
   (await db.select({ id: room.id }).from(room).where(eq(room.id, roomId)).get()) !== undefined;
 
-export const enterRoom = (db: Db, userId: string, roomId: string, now: Date) =>
-  db.batch([...joinStatements(db, userId, roomId, now)]);
+const isMissingRoom = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false;
+  return error.message.includes("FOREIGN KEY constraint failed") || isMissingRoom(error.cause);
+};
+
+/** ルームに入る。あると確かめた後に、最後の人が抜けてルームが消えていたら false。 */
+export const enterRoom = async (db: Db, userId: string, roomId: string, now: Date) => {
+  try {
+    await db.batch([...joinStatements(db, userId, roomId, now)]);
+    return true;
+  } catch (error) {
+    if (isMissingRoom(error)) return false;
+    throw error;
+  }
+};
 
 export const findMyRoomId = async (db: Db, userId: string) =>
   (

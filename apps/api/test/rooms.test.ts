@@ -92,6 +92,32 @@ describe("ルーム", () => {
     expect(members.map(({ name }) => name)).toEqual(["Alice"]);
   });
 
+  it("ルームを作った人が抜けても、誰かが残っていればルームは残る", async () => {
+    const alice = await signInAsNewUser({ name: "Alice" });
+    const bob = await signInAsNewUser({ name: "Bob" });
+    const carol = await signInAsNewUser({ name: "Carol" });
+    const roomId = await createRoom(alice.headers);
+    await joinRoom(bob.headers, roomId);
+
+    await createRoom(alice.headers);
+
+    expect((await joinRoom(carol.headers, roomId)).status).toBe(200);
+    const members = await getMembers(bob.headers, roomId);
+    expect(members.map(({ name }) => name)).toEqual(["Bob", "Carol"]);
+  });
+
+  it("全員が抜けたルームは消え、その ID では入れなくなる", async () => {
+    const alice = await signInAsNewUser();
+    const bob = await signInAsNewUser();
+    const roomId = await createRoom(alice.headers);
+
+    await createRoom(alice.headers);
+
+    const response = await joinRoom(bob.headers, roomId);
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ code: "ROOM_NOT_FOUND" });
+  });
+
   it("同じルームに入り直しても並び順は変わらない", async () => {
     const alice = await signInAsNewUser({ name: "Alice" });
     const bob = await signInAsNewUser({ name: "Bob" });
