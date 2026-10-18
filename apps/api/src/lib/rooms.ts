@@ -123,7 +123,7 @@ const selectMembers = (db: Db) =>
 
 type MemberRow = Awaited<ReturnType<ReturnType<typeof selectMembers>["all"]>>[number];
 
-// AWAY_THRESHOLD_MINUTES が空や数でないときだけ使う。ふだんの値は wrangler.jsonc の vars で決める。
+// AWAY_THRESHOLD_MINUTES が空や数でないときだけ使う。ふだんの値は Cloudflare のダッシュボードで設定する。
 const FALLBACK_AWAY_THRESHOLD_MINUTES = 30;
 
 /** 離れているとみなすまでの時間 (ミリ秒)。環境変数 AWAY_THRESHOLD_MINUTES の値が正の数でなければ、フォールバックの値を使う。 */

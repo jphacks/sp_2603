@@ -13,6 +13,7 @@ export default defineConfig(async () => {
           // テスト専用の値。本物のシークレットは使わない。
           bindings: {
             TEST_MIGRATIONS: migrations,
+            AWAY_THRESHOLD_MINUTES: "30",
             BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-0000",
             BETTER_AUTH_URL: "http://localhost",
             GOOGLE_CLIENT_ID: "",

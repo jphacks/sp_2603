@@ -15,10 +15,9 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
-  "vars": {
-    // 最後に画面を開いてからこの分数が過ぎた人を、離れている (isAway) とみなす。
-    "AWAY_THRESHOLD_MINUTES": "30"
-  },
+  // コードフリーズの後でも値を変えられるよう、変数はダッシュボードで設定する。
+  // keep_vars がないと、デプロイのたびにダッシュボードの変数が消える。設定する変数は docs/development.md を参照。
+  "keep_vars": true,
   // 値はローカルでは .dev.vars、本番では `wrangler secret put <NAME>` で設定する。
   "secrets": {
     "required": [
