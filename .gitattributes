@@ -1,6 +1,8 @@
 * text=auto eol=lf
 *.cmd text eol=crlf
 
+*.sql linguist-detectable=true
+
 # Generated files: collapsed in GitHub diffs
 packages/api-client/openapi.json linguist-generated=true
 packages/api-client/src/generated/** linguist-generated=true
