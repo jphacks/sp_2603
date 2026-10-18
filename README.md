@@ -1,10 +1,9 @@
 # Fllooat
 
-[![IMAGE ALT TEXT HERE](https://jphacks.com/wp-content/uploads/2026/07/IMG_5316.png)](https://www.youtube.com/watch?v=piaNsc6ilBI)
+[![Fllooat みんなの「暇」を可視化する。](docs/images/cover.png)](https://www.youtube.com/watch?v=piaNsc6ilBI)
 
+Web アプリ: https://fllooat.mfmf.moe (スマホで開き、ホーム画面に追加して使うのがおすすめ)
 
-
-Readme · MD
 ## 製品概要
 ### 背景(製品開発のきっかけ、課題等）
 仲間内での位置情報共有や、チーム開発における進捗共有など、コミュニケーションやプロジェクト進行を円滑にするために各々の生活を共有することは有効な手段である。
@@ -17,7 +16,16 @@ Readme · MD
 
 自分の抱えているタスクは、名前と重さを設定して気球に積み込んでいく。荷物が増えるほど気球は沈み、忙しさを表す。タスクが完了した時、あるいはタスクを中断するなどして暇になる時は、スマホを振ることで抱えたタスクを一度全て振り落とす。軽くなった気球は再び浮き上がり、暇な状態であることを表す。
 
+新しいタスクは、まず「プール」にブロックとして置いておく。今は取りかかれないタスクもメモしておけて、取りかかるときにブロックを気球へドラッグして乗せる。また、しばらくアプリを開いていないメンバーの気球はグレーになり、今は見ていない人だとわかる。
+
 また、ルーム内の他のメンバーの気球に触れると、その人が抱えているタスクと、それらが全体の重さのうちどのくらいの割合を占めているのかを確認できる。「忙しい」という事実だけでなく、「何で忙しいのか」まで把握できるため、連絡や相談のタイミングを見計らいやすくなる。
+
+### 使い方
+1. Google か GitHub のアカウントでログインする。
+2. ルームを作るか、仲間から聞いた 6 桁のルーム ID を入れて入室する。
+3. 「タスク追加」で名前と重さ (%) を決めてブロックを作り、気球へドラッグして乗せる。
+4. 終わったタスクは × で消すか、スマホを振って全部振り落とす。
+5. 仲間の気球をタップすると、その人が抱えているタスクが見られる。
 
 ### 特長
 #### 1. 「暇」を可視化・共有する
@@ -47,7 +55,6 @@ Readme · MD
 * ルームの切り替えに対応し、複数のコミュニティでの暇さの共有を可能にした点。
 
 
-
 ## 開発技術
 ### 活用した技術
 #### API・データ
@@ -64,12 +71,11 @@ Readme · MD
 * 開発環境: TypeScript 7、pnpm workspaces、Biome、Vitest (@cloudflare/vitest-plugin)、Wrangler、GitHub Actions
 
 #### デバイス
-ブラウザーが使えるデバイス全対応
+* スマートフォン (iPhone、Android) と PC のブラウザー
+* スマホを振る操作はモーションセンサーを使う。PC では気球をドラッグして揺らせば同じ操作になる
 
 ### 独自技術
 #### ハッカソンで開発した独自機能・技術
-* 独自で開発したものの内容をこちらに記載してください
-* 特に力を入れた部分をファイルリンク、またはcommit_idを記載してください。
 
 ##### フロントエンド
 
@@ -89,5 +95,14 @@ Readme · MD
 * API の型を zod のスキーマ 1 か所にまとめ、`pnpm gen` で OpenAPI の定義、TanStack Query の hooks、型、MSW のモックまで生成する仕組み。フロントエンド班は API の完成を待たずに、モックを相手に画面を作り進められる。生成し忘れたまま push しても、CI で気付ける。([gen-openapi.ts](https://github.com/jphacks/sp_2603/blob/main/apps/api/scripts/gen-openapi.ts)、[orval.config.ts](https://github.com/jphacks/sp_2603/blob/main/packages/api-client/orval.config.ts)、[ea2bf38](https://github.com/jphacks/sp_2603/commit/ea2bf38a056784f2b9ef9b7af6e2c7cb2dd926c5))
 * GitHub Actions による CI と自動デプロイ。PR ごとに lint、型チェック、ビルド、テスト、生成物の差分を確認し、main にマージすると Cloudflare Workers へのデプロイと本番のデータベースの更新まで自動で行う。ドキュメントだけを変えた PR では CI を省く。([ci.yml](https://github.com/jphacks/sp_2603/blob/main/.github/workflows/ci.yml)、[deploy.yml](https://github.com/jphacks/sp_2603/blob/main/.github/workflows/deploy.yml))
 * 本番と同じ Workers の実行環境と D1 の上で動かすテスト。データベースをモックせず、HTTP リクエストを送って API の振る舞いを確かめる。テスト名は「ログインしていない人はルームから抜けられない」のように、要件をそのまま文にした。([apps/api/test](https://github.com/jphacks/sp_2603/tree/main/apps/api/test))
+* セキュリティへの配慮。ログインは Google と GitHub の OAuth だけにし、パスワードを預からない。他人のタスクの名前は同じルームのメンバーにしか返さず、プールのタスクは本人にしか見えない。入力はタイトル 30 文字、重さ 1〜100% を API の Zod とデータベースの制約の両方で確かめる。OAuth の秘密情報はリポジトリに置かず、本番と開発で別の OAuth アプリを使う。([rooms.ts](https://github.com/jphacks/sp_2603/blob/main/apps/api/src/routes/rooms.ts)、[schemas.ts](https://github.com/jphacks/sp_2603/blob/main/apps/api/src/lib/schemas.ts)、[schema.ts](https://github.com/jphacks/sp_2603/blob/main/apps/api/src/db/schema.ts)、[development.md](https://github.com/jphacks/sp_2603/blob/main/docs/development.md))
 * AI エージェントにもメンバーと同じルールで開発させる仕組み。ブランチ、コミット、テストの決まりを AGENTS.md に書き、API や画面の追加といったよくある作業の手順を Agent Skills にまとめた。Claude Code や Codex に任せても、メンバーが書くのと同じ形のコードとコミットになる。([AGENTS.md](https://github.com/jphacks/sp_2603/blob/main/AGENTS.md)、[.claude/skills](https://github.com/jphacks/sp_2603/tree/main/.claude/skills)、[skills-lock.json](https://github.com/jphacks/sp_2603/blob/main/skills-lock.json))
 
+## 開発環境の構築
+
+Node.js 24 以上と pnpm 10 が必要。API まで動かす手順 (`.dev.vars` とローカルのデータベースの準備) は [docs/development.md](docs/development.md) にある。
+
+```sh
+pnpm install
+pnpm dev:mock   # API なしで、モックを相手に画面だけを動かす (http://localhost:5173)
+```
