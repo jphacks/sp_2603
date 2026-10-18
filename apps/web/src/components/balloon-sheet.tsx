@@ -128,38 +128,42 @@ export function BalloonSheet({
           >
             <div className="h-[5.16px] w-20 rounded-[10px] bg-[#E6E6E6]" />
           </div>
-          {/* 中身があふれたときに名前や気球が縮んで消えないよう、子は縮ませずにスクロールさせる。 */}
-          <div className="flex min-h-0 w-full flex-1 flex-col items-center overflow-y-auto overscroll-contain px-4 pb-[calc(114px+env(safe-area-inset-bottom))] *:shrink-0">
-            <h2
-              id={titleId}
-              className="mt-8 w-full max-w-70 truncate text-center text-[21px] font-bold tracking-[-0.04em]"
-            >
-              {name}
-            </h2>
-            <p className="text-[13px]">{busy}%</p>
-            <div ref={balloonRef} className="mt-[34px]">
-              <BalloonFigure size={ENVELOPE_SIZE_PX} image={image} color={color} busy={busy} />
+          {/* スクロールする箱と、中身を並べる flex を分ける。flex の箱をそのままスクロールさせると、
+              iOS では中身が縮んだりスクロールしなかったりする。 */}
+          <div className="min-h-0 w-full flex-1 touch-pan-y overflow-y-auto overscroll-contain">
+            {/* 下のメニュー (114px + セーフエリア) に隠れず、最後までスクロールしたらプールが見えるよう、下に余白を足す。 */}
+            <div className="flex flex-col items-center px-4 pb-[calc(114px+env(safe-area-inset-bottom)+24px)] *:shrink-0">
+              <h2
+                id={titleId}
+                className="mt-8 w-full max-w-70 truncate text-center text-[21px] font-bold tracking-[-0.04em]"
+              >
+                {name}
+              </h2>
+              <p className="text-[13px]">{busy}%</p>
+              <div ref={balloonRef} className="mt-[34px]">
+                <BalloonFigure size={ENVELOPE_SIZE_PX} image={image} color={color} busy={busy} />
+              </div>
+              <TaskList tasks={tasks} onDelete={onDeleteTask} deletingTaskId={deletingTaskId} />
+              {pool && (
+                <>
+                  <p role="alert" className="mt-2 min-h-4 text-[13px] text-[#FDE047]">
+                    {pool.errorMessage}
+                  </p>
+                  {pool.tasks && onDeleteTask && (
+                    <div className="mt-[31px] flex w-full justify-center">
+                      <TaskPool
+                        pool={pool.tasks}
+                        onDrop={dropOnBalloon}
+                        onDelete={onDeleteTask}
+                        onAdd={pool.onAdd}
+                        loadingTaskId={pool.loadingTaskId}
+                        deletingTaskId={deletingTaskId}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            <TaskList tasks={tasks} onDelete={onDeleteTask} deletingTaskId={deletingTaskId} />
-            {pool && (
-              <>
-                <p role="alert" className="mt-2 min-h-4 text-[13px] text-[#FDE047]">
-                  {pool.errorMessage}
-                </p>
-                {pool.tasks && onDeleteTask && (
-                  <div className="mt-[31px] flex w-full justify-center">
-                    <TaskPool
-                      pool={pool.tasks}
-                      onDrop={dropOnBalloon}
-                      onDelete={onDeleteTask}
-                      onAdd={pool.onAdd}
-                      loadingTaskId={pool.loadingTaskId}
-                      deletingTaskId={deletingTaskId}
-                    />
-                  </div>
-                )}
-              </>
-            )}
           </div>
         </motion.div>
       )}
