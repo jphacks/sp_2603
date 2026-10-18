@@ -37,7 +37,9 @@ const errorMessageOf = (error: unknown) => {
   return null;
 };
 
-// TODO: デザインが来たら見た目を差し替える。
+const fieldButtonClassName =
+  "h-[35px] w-full rounded-[10px] bg-[#e6e6e6] text-[21px] font-normal text-[#0055dd] hover:bg-[#e6e6e6]/90";
+
 function JoinPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -73,41 +75,71 @@ function JoinPage() {
   };
 
   return (
-    <section className="mx-auto flex h-full max-w-sm flex-col justify-center gap-6 px-4">
-      <div className="self-end">
+    <main className="relative flex h-full flex-col items-center justify-center bg-[#0055dd] px-4 text-[#e6e6e6]">
+      {/* デザインにはないが、ルームのメニューができるまではここだけがログアウトの入口になる。 */}
+      <div className="absolute top-4 right-4">
         <UserMenu />
       </div>
-      <h1 className="text-2xl font-bold">ルームに入る</h1>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (isRoomId(roomId)) request({ kind: "join", roomId });
-        }}
-        className="flex gap-2"
-      >
-        <Input
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={ROOM_ID_LENGTH}
-          placeholder="6 桁のルーム ID"
-          value={roomId}
-          onChange={(event) => setRoomId(event.target.value.replace(/\D/g, ""))}
-        />
-        <Button type="submit" disabled={!isRoomId(roomId) || isPending}>
-          入る
+      <h1 className="sr-only">ルームに入る</h1>
+      <div className="flex w-full max-w-70 flex-col gap-4">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (isRoomId(roomId)) request({ kind: "join", roomId });
+          }}
+          className="flex flex-col gap-4"
+        >
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="room-id" className="text-sm text-[#e6e6e6]/90">
+              ルーム番号を入力
+            </label>
+            {/* iOS は 16px 未満の入力欄にフォーカスすると画面を拡大するので、文字はデザインの 14px より大きくする。 */}
+            <Input
+              id="room-id"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={ROOM_ID_LENGTH}
+              placeholder="000000"
+              value={roomId}
+              onChange={(event) => setRoomId(event.target.value.replace(/\D/g, ""))}
+              className="h-9 rounded-md border-none bg-[#cce2f4] px-3 text-base text-[#0055dd] placeholder:text-[#45aeef] focus-visible:ring-white/60 md:text-base"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={!isRoomId(roomId) || isPending}
+            className={fieldButtonClassName}
+          >
+            入室
+          </Button>
+        </form>
+        <div className="flex items-center gap-4 text-[13px]">
+          <span className="h-0 flex-1 border-t-[0.5px] border-white" />
+          または
+          <span className="h-0 flex-1 border-t-[0.5px] border-white" />
+        </div>
+        <Button
+          disabled={isPending}
+          onClick={() => request({ kind: "create" })}
+          className={fieldButtonClassName}
+        >
+          新規ルーム作成
         </Button>
-      </form>
-      <Button variant="outline" disabled={isPending} onClick={() => request({ kind: "create" })}>
-        ルームを新しく作る
-      </Button>
-      {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
-      {currentRoomId && (
-        <Button variant="link" asChild>
-          <Link to="/rooms/$roomId" params={{ roomId: currentRoomId }}>
+        {errorMessage && (
+          <p role="alert" className="text-center text-sm text-white">
+            {errorMessage}
+          </p>
+        )}
+        {currentRoomId && (
+          <Link
+            to="/rooms/$roomId"
+            params={{ roomId: currentRoomId }}
+            className="text-center text-sm underline underline-offset-4"
+          >
             今のルーム ({currentRoomId}) に戻る
           </Link>
-        </Button>
-      )}
+        )}
+      </div>
       <Dialog
         open={confirming !== undefined}
         onOpenChange={(open) => !open && setConfirming(undefined)}
@@ -128,6 +160,6 @@ function JoinPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </section>
+    </main>
   );
 }
