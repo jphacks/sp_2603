@@ -67,3 +67,15 @@ Readme · MD
 #### ハッカソンで開発した独自機能・技術
 * 独自で開発したものの内容をこちらに記載してください
 * 特に力を入れた部分をファイルリンク、またはcommit_idを記載してください。
+
+##### フロントエンド
+
+##### バックエンド
+
+##### その他
+
+- 環境構築に力を入れました。
+  GitHub ActionsによるCIやAgent SkillsやAGENTS.mdでコード品質を担保しました。 ( [.github/workflows/ci.yml](https://github.com/jphacks/sp_2603/blob/main/.github/workflows/ci.yml) [skills-lock.json](https://github.com/jphacks/sp_2603/blob/main/skills-lock.json) [AGENTS.md](https://github.com/jphacks/sp_2603/blob/main/AGENTS.md) )
+  GitHub ActionsによるCD (deploy)を構築し、mainにpushされた際に Cloudflare Workers に自動デプロイされるようにしました。 [.github/workflows/deploy.yml](https://github.com/jphacks/sp_2603/blob/main/.github/workflows/deploy.yml)
+  OpenAPIを半自動的に作成するようにし、フロントエンド班も分かりやすく作業を進められるようにし、開発の速度感を速めるようにした。 [ea2bf38a056784f2b9ef9b7af6e2c7cb2dd926c5](https://github.com/jphacks/sp_2603/commit/ea2bf38a056784f2b9ef9b7af6e2c7cb2dd926c5)
+  
