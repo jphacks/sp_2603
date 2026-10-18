@@ -60,7 +60,7 @@ function TodosPage() {
 
 `_authed.tsx` は子ルートがないと `/` と衝突してビルドが失敗するので、子ルートといっしょに作ってください。
 
-ログインしているかどうかで表示を変えるだけなら、`useQuery(sessionQueryOptions)` を使います (`components/user-menu.tsx` が例)。
+ログインしているかどうかで表示を変えるだけなら、`useQuery(sessionQueryOptions)` を使います。
 
 ## UI
 
