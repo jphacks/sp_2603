@@ -16,6 +16,7 @@ export interface RoomMember {
      * @maximum 100
      */
   busy: number;
-  statusUpdatedAt: string;
+  /** 最後に画面を開いてから、しきい値 (初期値 3 時間) より長くたっているか */
+  isAway: boolean;
   isMe: boolean;
 }

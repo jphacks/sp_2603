@@ -14,21 +14,20 @@ import type {
 } from 'msw';
 
 import type {
-  History,
   Me,
   MyStatus
 } from '../model';
 
 import {
   getAddMyTaskResponseMock,
+  getDeleteMyTaskResponseMock,
   getDropMyTasksResponseMock,
   getGetMeResponseMock,
-  getGetMyHistoryResponseMock,
   getGetMyTasksResponseMock,
-  getReloadMyTaskResponseMock
+  getLoadMyTaskResponseMock
 } from './me.faker';
 
-export { getGetMeResponseMock, getGetMyTasksResponseMock, getAddMyTaskResponseMock, getDropMyTasksResponseMock, getGetMyHistoryResponseMock, getReloadMyTaskResponseMock } from './me.faker';
+export { getGetMeResponseMock, getGetMyTasksResponseMock, getAddMyTaskResponseMock, getDropMyTasksResponseMock, getLoadMyTaskResponseMock, getDeleteMyTaskResponseMock } from './me.faker';
 
 
 export const getGetMeMockHandler = (overrideResponse?: Me | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Me> | Me), options?: RequestHandlerOptions) => {
@@ -79,25 +78,25 @@ export const getDropMyTasksMockHandler = (overrideResponse?: MyStatus | ((info: 
   }, options)
 }
 
-export const getGetMyHistoryMockHandler = (overrideResponse?: History | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<History> | History), options?: RequestHandlerOptions) => {
-  return http.get('*/api/me/history', async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {await delay(300);
+export const getLoadMyTaskMockHandler = (overrideResponse?: MyStatus | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<MyStatus> | MyStatus), options?: RequestHandlerOptions) => {
+  return http.post('*/api/me/tasks/:taskId/load', async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {await delay(300);
 
 
     return HttpResponse.json(overrideResponse !== undefined
     ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
-    : getGetMyHistoryResponseMock(),
+    : getLoadMyTaskResponseMock(),
       { status: 200
       })
   }, options)
 }
 
-export const getReloadMyTaskMockHandler = (overrideResponse?: MyStatus | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<MyStatus> | MyStatus), options?: RequestHandlerOptions) => {
-  return http.post('*/api/me/history/:taskId/reload', async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {await delay(300);
+export const getDeleteMyTaskMockHandler = (overrideResponse?: MyStatus | ((info: Parameters<Parameters<typeof http.delete>[1]>[0]) => Promise<MyStatus> | MyStatus), options?: RequestHandlerOptions) => {
+  return http.delete('*/api/me/tasks/:taskId', async (info: Parameters<Parameters<typeof http.delete>[1]>[0]) => {await delay(300);
 
 
     return HttpResponse.json(overrideResponse !== undefined
     ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
-    : getReloadMyTaskResponseMock(),
+    : getDeleteMyTaskResponseMock(),
       { status: 200
       })
   }, options)
@@ -107,6 +106,6 @@ export const getMeMock = () => [
   getGetMyTasksMockHandler(),
   getAddMyTaskMockHandler(),
   getDropMyTasksMockHandler(),
-  getGetMyHistoryMockHandler(),
-  getReloadMyTaskMockHandler()
+  getLoadMyTaskMockHandler(),
+  getDeleteMyTaskMockHandler()
 ]

@@ -4,6 +4,7 @@
  * Fllooat API
  * OpenAPI spec version: 0.0.0
  */
+import type { PoolTask } from './poolTask';
 import type { Task } from './task';
 
 export interface MyStatus {
@@ -19,7 +20,8 @@ export interface MyStatus {
      * @maximum 100
      */
   remaining: number;
-  statusUpdatedAt: string;
-  /** 乗っているタスク。乗せた日時の新しい順 */
+  /** 気球に乗っているタスク。乗せた日時の新しい順 */
   tasks: Task[];
+  /** プールにあるタスク。作った日時の新しい順 */
+  pool: PoolTask[];
 }

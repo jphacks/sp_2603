@@ -35,23 +35,31 @@ export const TaskTitleSchema = z
   .max(TITLE_MAX_LENGTH)
   .openapi({ example: "API の実装" });
 
-export const TaskSchema = z
-  .object({
-    id: z.number().int().openapi({ example: 12 }),
-    title: z.string().openapi({ example: "API の実装" }),
-    weight: WeightSchema,
-    createdAt: z.iso.datetime(),
-  })
-  .openapi("Task");
+export const TaskIdParamsSchema = z.object({
+  taskId: z.coerce
+    .number()
+    .int()
+    .positive()
+    .openapi({ param: { name: "taskId", in: "path" }, example: 12 }),
+});
 
-export const DroppedTaskSchema = z
-  .object({
-    id: z.number().int().openapi({ example: 9 }),
-    title: z.string().openapi({ example: "デザインの確認" }),
-    weight: WeightSchema,
-    droppedAt: z.iso.datetime(),
-  })
-  .openapi("DroppedTask");
+const TaskFieldsSchema = z.object({
+  id: z.number().int().openapi({ example: 12 }),
+  title: z.string().openapi({ example: "API の実装" }),
+  weight: WeightSchema,
+});
+
+export const TaskSchema = TaskFieldsSchema.extend({
+  loadedAt: z.iso.datetime().openapi({ description: "気球に乗せた日時" }),
+}).openapi("Task");
+
+export const PoolTaskSchema = TaskFieldsSchema.extend({
+  createdAt: z.iso.datetime().openapi({ description: "プールに作った日時" }),
+}).openapi("PoolTask");
+
+const OnBoardTasksSchema = z
+  .array(TaskSchema)
+  .openapi({ description: "気球に乗っているタスク。乗せた日時の新しい順" });
 
 export const MyStatusSchema = z
   .object({
@@ -62,8 +70,10 @@ export const MyStatusSchema = z
       .min(0)
       .max(100)
       .openapi({ description: "あと何 % まで乗せられるか", example: 40 }),
-    statusUpdatedAt: z.iso.datetime(),
-    tasks: z.array(TaskSchema).openapi({ description: "乗っているタスク。乗せた日時の新しい順" }),
+    tasks: OnBoardTasksSchema,
+    pool: z
+      .array(PoolTaskSchema)
+      .openapi({ description: "プールにあるタスク。作った日時の新しい順" }),
   })
   .openapi("MyStatus");
 
@@ -72,7 +82,9 @@ const MemberProfileSchema = z.object({
   name: z.string().openapi({ example: "Alice" }),
   image: z.string().nullable().openapi({ example: "https://example.com/alice.png" }),
   busy: BusySchema,
-  statusUpdatedAt: z.iso.datetime(),
+  isAway: z.boolean().openapi({
+    description: "最後に画面を開いてから、しきい値 (初期値 3 時間) より長くたっているか",
+  }),
 });
 
 export const RoomMemberSchema = MemberProfileSchema.extend({
@@ -80,14 +92,12 @@ export const RoomMemberSchema = MemberProfileSchema.extend({
 }).openapi("RoomMember");
 
 export const MemberDetailSchema = MemberProfileSchema.extend({
-  serverTime: z.iso.datetime(),
-  tasks: z.array(TaskSchema).openapi({ description: "乗っているタスク。乗せた日時の新しい順" }),
+  tasks: OnBoardTasksSchema,
 }).openapi("MemberDetail");
 
 export const RoomSchema = z
   .object({
     roomId: RoomIdSchema,
-    serverTime: z.iso.datetime(),
     members: z.array(RoomMemberSchema).openapi({ description: "メンバー。自分を含めて入室順" }),
   })
   .openapi("Room");

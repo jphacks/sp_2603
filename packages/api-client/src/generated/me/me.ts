@@ -25,11 +25,9 @@ import type {
 
 import type {
   ApiErrorBody,
-  History,
   Me,
   MyStatus,
-  NewTask,
-  ReloadTask
+  NewTask
 } from '../model';
 
 import { apiFetch } from '../../fetcher';
@@ -291,15 +289,10 @@ export type addMyTaskResponse401 = {
   status: 401
 }
 
-export type addMyTaskResponse409 = {
-  data: ApiErrorBody
-  status: 409
-}
-
 export type addMyTaskResponseSuccess = (addMyTaskResponse201) & {
   headers: Headers;
 };
-export type addMyTaskResponseError = (addMyTaskResponse400 | addMyTaskResponse401 | addMyTaskResponse409) & {
+export type addMyTaskResponseError = (addMyTaskResponse400 | addMyTaskResponse401) & {
   headers: Headers;
 };
 
@@ -468,180 +461,54 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getDropMyTasksMutationOptions(options), queryClient);
     }
-    export type getMyHistoryResponse200 = {
-  data: History
-  status: 200
-}
-
-export type getMyHistoryResponse401 = {
-  data: ApiErrorBody
-  status: 401
-}
-
-export type getMyHistoryResponseSuccess = (getMyHistoryResponse200) & {
-  headers: Headers;
-};
-export type getMyHistoryResponseError = (getMyHistoryResponse401) & {
-  headers: Headers;
-};
-
-export const getGetMyHistoryUrl = () => {
-
-
-
-
-  return `/api/me/history`
-}
-
-export const getMyHistory = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getMyHistoryResponseSuccess> => {
-
-  return apiFetch<getMyHistoryResponseSuccess>(getGetMyHistoryUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetMyHistoryQueryKey = () => {
-    return [
-    `/api/me/history`
-    ] as const;
-    }
-
-
-export const getGetMyHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getMyHistory>>, TError = ApiErrorBody>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetMyHistoryQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyHistory>>> = ({ signal }) => getMyHistory({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetMyHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getMyHistory>>>
-export type GetMyHistoryQueryError = ApiErrorBody
-
-
-export function useGetMyHistory<TData = Awaited<ReturnType<typeof getMyHistory>>, TError = ApiErrorBody>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyHistory>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getMyHistory>>,
-          TError,
-          Awaited<ReturnType<typeof getMyHistory>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMyHistory<TData = Awaited<ReturnType<typeof getMyHistory>>, TError = ApiErrorBody>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyHistory>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getMyHistory>>,
-          TError,
-          Awaited<ReturnType<typeof getMyHistory>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMyHistory<TData = Awaited<ReturnType<typeof getMyHistory>>, TError = ApiErrorBody>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useGetMyHistory<TData = Awaited<ReturnType<typeof getMyHistory>>, TError = ApiErrorBody>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetMyHistoryQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-export type reloadMyTaskResponse200 = {
+    export type loadMyTaskResponse200 = {
   data: MyStatus
   status: 200
 }
 
-export type reloadMyTaskResponse400 = {
+export type loadMyTaskResponse400 = {
   data: ApiErrorBody
   status: 400
 }
 
-export type reloadMyTaskResponse401 = {
+export type loadMyTaskResponse401 = {
   data: ApiErrorBody
   status: 401
 }
 
-export type reloadMyTaskResponse404 = {
+export type loadMyTaskResponse404 = {
   data: ApiErrorBody
   status: 404
 }
 
-export type reloadMyTaskResponse409 = {
+export type loadMyTaskResponse409 = {
   data: ApiErrorBody
   status: 409
 }
 
-export type reloadMyTaskResponseSuccess = (reloadMyTaskResponse200) & {
+export type loadMyTaskResponseSuccess = (loadMyTaskResponse200) & {
   headers: Headers;
 };
-export type reloadMyTaskResponseError = (reloadMyTaskResponse400 | reloadMyTaskResponse401 | reloadMyTaskResponse404 | reloadMyTaskResponse409) & {
+export type loadMyTaskResponseError = (loadMyTaskResponse400 | loadMyTaskResponse401 | loadMyTaskResponse404 | loadMyTaskResponse409) & {
   headers: Headers;
 };
 
-export const getReloadMyTaskUrl = (taskId: number,) => {
+export const getLoadMyTaskUrl = (taskId: number,) => {
 
 
 
 
-  return `/api/me/history/${taskId}/reload`
+  return `/api/me/tasks/${taskId}/load`
 }
 
-export const reloadMyTask = async (taskId: number,
-    reloadTask: ReloadTask, options?: Parameters<typeof apiFetch>[1]): Promise<reloadMyTaskResponseSuccess> => {
+export const loadMyTask = async (taskId: number, options?: Parameters<typeof apiFetch>[1]): Promise<loadMyTaskResponseSuccess> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiFetch<reloadMyTaskResponseSuccess>(getReloadMyTaskUrl(taskId),
+  return apiFetch<loadMyTaskResponseSuccess>(getLoadMyTaskUrl(taskId),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(reloadTask)
+    method: 'POST'
+
+
   }
 );}
 
@@ -649,13 +516,13 @@ return apiFetch<reloadMyTaskResponseSuccess>(getReloadMyTaskUrl(taskId),
 
 
 
-export const getReloadMyTaskMutationKey = () => ['reloadMyTask'] as const;
+export const getLoadMyTaskMutationKey = () => ['loadMyTask'] as const;
 
-export const getReloadMyTaskMutationOptions = <TError = ApiErrorBody,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reloadMyTask>>, TError,ReloadMyTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof reloadMyTask>>, TError,ReloadMyTaskMutationVariables, TContext> => {
+export const getLoadMyTaskMutationOptions = <TError = ApiErrorBody,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loadMyTask>>, TError,LoadMyTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof loadMyTask>>, TError,LoadMyTaskMutationVariables, TContext> => {
 
-const mutationKey = getReloadMyTaskMutationKey();
+const mutationKey = getLoadMyTaskMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -665,10 +532,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reloadMyTask>>, ReloadMyTaskMutationVariables> = (props) => {
-          const {taskId,data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof loadMyTask>>, LoadMyTaskMutationVariables> = (props) => {
+          const {taskId} = props ?? {};
 
-          return  reloadMyTask(taskId,data,requestOptions)
+          return  loadMyTask(taskId,requestOptions)
         }
 
 
@@ -678,18 +545,112 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type ReloadMyTaskMutationResult = NonNullable<Awaited<ReturnType<typeof reloadMyTask>>>
-    export type ReloadMyTaskMutationBody = ReloadTask
-    export type ReloadMyTaskMutationError = ApiErrorBody
-    export type ReloadMyTaskMutationVariables = {taskId: number;data: ReloadTask}
+    export type LoadMyTaskMutationResult = NonNullable<Awaited<ReturnType<typeof loadMyTask>>>
 
-    export const useReloadMyTask = <TError = ApiErrorBody,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reloadMyTask>>, TError,ReloadMyTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+    export type LoadMyTaskMutationError = ApiErrorBody
+    export type LoadMyTaskMutationVariables = {taskId: number}
+
+    export const useLoadMyTask = <TError = ApiErrorBody,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loadMyTask>>, TError,LoadMyTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof reloadMyTask>>,
+        Awaited<ReturnType<typeof loadMyTask>>,
         TError,
-        ReloadMyTaskMutationVariables,
+        LoadMyTaskMutationVariables,
         TContext
       > => {
-      return useMutation(getReloadMyTaskMutationOptions(options), queryClient);
+      return useMutation(getLoadMyTaskMutationOptions(options), queryClient);
+    }
+    export type deleteMyTaskResponse200 = {
+  data: MyStatus
+  status: 200
+}
+
+export type deleteMyTaskResponse400 = {
+  data: ApiErrorBody
+  status: 400
+}
+
+export type deleteMyTaskResponse401 = {
+  data: ApiErrorBody
+  status: 401
+}
+
+export type deleteMyTaskResponse404 = {
+  data: ApiErrorBody
+  status: 404
+}
+
+export type deleteMyTaskResponseSuccess = (deleteMyTaskResponse200) & {
+  headers: Headers;
+};
+export type deleteMyTaskResponseError = (deleteMyTaskResponse400 | deleteMyTaskResponse401 | deleteMyTaskResponse404) & {
+  headers: Headers;
+};
+
+export const getDeleteMyTaskUrl = (taskId: number,) => {
+
+
+
+
+  return `/api/me/tasks/${taskId}`
+}
+
+export const deleteMyTask = async (taskId: number, options?: Parameters<typeof apiFetch>[1]): Promise<deleteMyTaskResponseSuccess> => {
+
+  return apiFetch<deleteMyTaskResponseSuccess>(getDeleteMyTaskUrl(taskId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteMyTaskMutationKey = () => ['deleteMyTask'] as const;
+
+export const getDeleteMyTaskMutationOptions = <TError = ApiErrorBody,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMyTask>>, TError,DeleteMyTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMyTask>>, TError,DeleteMyTaskMutationVariables, TContext> => {
+
+const mutationKey = getDeleteMyTaskMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMyTask>>, DeleteMyTaskMutationVariables> = (props) => {
+          const {taskId} = props ?? {};
+
+          return  deleteMyTask(taskId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMyTaskMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMyTask>>>
+
+    export type DeleteMyTaskMutationError = ApiErrorBody
+    export type DeleteMyTaskMutationVariables = {taskId: number}
+
+    export const useDeleteMyTask = <TError = ApiErrorBody,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMyTask>>, TError,DeleteMyTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMyTask>>,
+        TError,
+        DeleteMyTaskMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteMyTaskMutationOptions(options), queryClient);
     }

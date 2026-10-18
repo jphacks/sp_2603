@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { signInAsNewUser } from "./helpers/auth";
 import { request } from "./helpers/request";
-import { addTask, createRoom, joinRoom } from "./helpers/room";
+import { addAndLoadTask, addTask, createRoom, joinRoom } from "./helpers/room";
 
 describe("気球の詳細", () => {
   it("同じルームの人のタスクのタイトルが見られる", async () => {
@@ -9,7 +9,7 @@ describe("気球の詳細", () => {
     const bob = await signInAsNewUser();
     const roomId = await createRoom(alice.headers);
     await joinRoom(bob.headers, roomId);
-    await addTask(alice.headers, { title: "API の実装", weight: 40 });
+    await addAndLoadTask(alice.headers, { title: "API の実装", weight: 40 });
 
     const response = await request(`/api/rooms/${roomId}/members/${alice.user.id}`, {
       headers: bob.headers,
@@ -29,7 +29,7 @@ describe("気球の詳細", () => {
     const roomId = await createRoom(alice.headers);
     await joinRoom(bob.headers, roomId);
 
-    await addTask(alice.headers, { title: "API の実装", weight: 40 });
+    await addAndLoadTask(alice.headers, { title: "API の実装", weight: 40 });
 
     const response = await request(`/api/rooms/${roomId}`, { headers: bob.headers });
     const { members } = (await response.json()) as {
@@ -38,10 +38,26 @@ describe("気球の詳細", () => {
     expect(members.find(({ userId }) => userId === alice.user.id)).toMatchObject({ busy: 40 });
   });
 
+  it("プールのタスクは、同じルームの人の詳細には出ない", async () => {
+    const alice = await signInAsNewUser();
+    const bob = await signInAsNewUser();
+    const roomId = await createRoom(alice.headers);
+    await joinRoom(bob.headers, roomId);
+    await addTask(alice.headers, { title: "スライド作成", weight: 20 });
+
+    const response = await request(`/api/rooms/${roomId}/members/${alice.user.id}`, {
+      headers: bob.headers,
+    });
+
+    const body = await response.text();
+    expect(JSON.parse(body)).toMatchObject({ busy: 0, tasks: [] });
+    expect(body).not.toContain("スライド作成");
+  });
+
   it("ルームの一覧にはタスクのタイトルが含まれない", async () => {
     const { headers } = await signInAsNewUser();
     const roomId = await createRoom(headers);
-    await addTask(headers, { title: "API の実装", weight: 40 });
+    await addAndLoadTask(headers, { title: "API の実装", weight: 40 });
 
     const response = await request(`/api/rooms/${roomId}`, { headers });
 

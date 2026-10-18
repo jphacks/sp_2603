@@ -18,3 +18,15 @@ export const addTask = (headers: Headers, task: { title: string; weight: number 
 
 export const dropTasks = (headers: Headers) =>
   request("/api/me/tasks/drop", { method: "POST", headers });
+
+export const loadTask = (headers: Headers, taskId: number) =>
+  request(`/api/me/tasks/${taskId}/load`, { method: "POST", headers });
+
+export const deleteTask = (headers: Headers, taskId: number) =>
+  request(`/api/me/tasks/${taskId}`, { method: "DELETE", headers });
+
+/** プールにタスクを作り、そのまま気球に乗せる。 */
+export const addAndLoadTask = async (headers: Headers, task: { title: string; weight: number }) => {
+  const { pool } = (await (await addTask(headers, task)).json()) as { pool: { id: number }[] };
+  return loadTask(headers, pool[0]?.id ?? 0);
+};

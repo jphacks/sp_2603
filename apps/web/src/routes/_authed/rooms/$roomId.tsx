@@ -3,13 +3,15 @@ import {
   isApiError,
   type RoomMember,
   useAddMyTask,
+  useDeleteMyTask,
   useDropMyTasks,
   useGetMyTasks,
   useGetRoom,
   useGetRoomMember,
   useLeaveMyRoom,
+  useLoadMyTask,
 } from "@fllooat/api-client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -75,20 +77,32 @@ function RoomPage() {
     if (isApiError(memberDetail.error, "MEMBER_NOT_FOUND")) setSelectedUserId(undefined);
   }, [memberDetail.error]);
 
-  const addTask = useAddMyTask({
-    mutation: {
-      onSuccess: ({ data }) => {
-        applyMyStatus(data);
-        setIsAddTaskOpen(false);
-      },
-      // 上限を超えたときは、スライダーの上限を今の残りに合わせる。
-      onError: (error) => {
-        if (isApiError(error, "WEIGHT_LIMIT_EXCEEDED")) myTasks.refetch();
-      },
+  const createPoolTask = useAddMyTask();
+  const loadPoolTask = useLoadMyTask();
+  const deletePoolTask = useDeleteMyTask();
+  // TODO: プールの画面ができるまでは、作ったタスクをすぐに気球へ乗せる。乗せられなければプールから消す。
+  const addTask = useMutation({
+    mutationFn: async ({ title, weight }: { title: string; weight: number }) => {
+      const created = await createPoolTask.mutateAsync({ data: { title, weight } });
+      const taskId = created.data.pool[0]?.id ?? 0;
+      try {
+        return await loadPoolTask.mutateAsync({ taskId });
+      } catch (error) {
+        await deletePoolTask.mutateAsync({ taskId }).catch(() => {});
+        throw error;
+      }
+    },
+    onSuccess: ({ data }) => {
+      applyMyStatus(data);
+      setIsAddTaskOpen(false);
+    },
+    // 上限を超えたときは、スライダーの上限を今の残りに合わせる。
+    onError: (error) => {
+      if (isApiError(error, "WEIGHT_LIMIT_EXCEEDED")) myTasks.refetch();
     },
   });
   const dropTasks = useDropMyTasks({ mutation: { onSuccess: ({ data }) => applyMyStatus(data) } });
-  // 呼び出し中にもう一度揺れても、二重には落とさない。タスクが 0 件でも呼び、最終更新を新しくする。
+  // 呼び出し中にもう一度揺れても、二重には落とさない。
   const dropAllTasks = () => {
     if (!dropTasks.isPending) dropTasks.mutate();
   };
@@ -103,7 +117,6 @@ function RoomPage() {
         {room.data ? (
           <BalloonSky
             roomId={roomId}
-            serverTime={room.data.data.serverTime}
             members={room.data.data.members}
             onSelectMember={selectMember}
             onShakeMyBalloon={dropAllTasks}
@@ -150,7 +163,7 @@ function RoomPage() {
         remaining={myTasks.data?.data.remaining ?? 0}
         isPending={addTask.isPending}
         errorMessage={addTaskErrorMessageOf(addTask.error)}
-        onAdd={(title, weight) => addTask.mutate({ data: { title, weight } })}
+        onAdd={(title, weight) => addTask.mutate({ title, weight })}
       />
       <MemberDetailDialog
         open={selectedUserId !== undefined}

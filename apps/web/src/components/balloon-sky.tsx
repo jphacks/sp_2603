@@ -5,7 +5,6 @@ import { useMemo, useRef } from "react";
 import { BALLOON_ANCHOR_PX, Balloon } from "@/components/balloon";
 import { useColumnCount } from "@/hooks/use-column-count";
 import { assignBalloonColors } from "@/lib/balloon-colors";
-import { balloonDistance } from "@/lib/balloon-distance";
 import { myColumnIndex, placeAroundMe, ringFromMe } from "@/lib/balloon-ring";
 import { cn } from "@/lib/utils";
 
@@ -21,20 +20,13 @@ const SKY_TOP = "top-34";
 const SKY_BOTTOM = "bottom-28";
 
 type BalloonSkyProps = {
-  serverTime: string;
   roomId: string;
   members: RoomMember[];
   onSelectMember: (member: RoomMember) => void;
   onShakeMyBalloon: () => void;
 };
 
-export function BalloonSky({
-  serverTime,
-  roomId,
-  members,
-  onSelectMember,
-  onShakeMyBalloon,
-}: BalloonSkyProps) {
+export function BalloonSky({ roomId, members, onSelectMember, onShakeMyBalloon }: BalloonSkyProps) {
   const colors = useMemo(
     () =>
       assignBalloonColors(
@@ -55,7 +47,6 @@ export function BalloonSky({
       key={key}
       member={member}
       color={member ? (colors.get(member.userId) ?? "#FFFFFF") : ""}
-      serverTime={serverTime}
       onSelect={onSelectMember}
       onShake={onShakeMyBalloon}
     />
@@ -129,13 +120,11 @@ function LoopingColumns({
 function SkyColumn({
   member,
   color,
-  serverTime,
   onSelect,
   onShake,
 }: {
   member: RoomMember | undefined;
   color: string;
-  serverTime: string;
   onSelect: (member: RoomMember) => void;
   onShake: () => void;
 }) {
@@ -161,7 +150,7 @@ function SkyColumn({
             name={member.name}
             image={member.image}
             color={color}
-            distance={balloonDistance(serverTime, member.statusUpdatedAt)}
+            isAway={member.isAway}
             onTap={() => onSelect(member)}
             onShake={member.isMe ? onShake : undefined}
           />

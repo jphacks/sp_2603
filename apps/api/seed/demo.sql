@@ -1,4 +1,4 @@
--- デモ用のルーム 123456 に、忙しさと最終更新がばらばらなダミーメンバーを入れる。
+-- デモ用のルーム 123456 に、忙しさと最後に画面を開いていた時刻がばらばらなダミーメンバーを入れる。
 -- 流すたびに作り直すので、何度流してもよい。ダミーの人は OAuth の account を持たないのでログインはできない。
 -- 自分でログインして ID 123456 で入ると、ダミーの後ろに並ぶ。
 -- D1 では一時テーブルを作れないので、ダミーの一覧は文ごとに WITH で書く。
@@ -27,29 +27,29 @@ WITH demo_member (id, joined_order) AS (
 SELECT id, '123456', cast(unixepoch('subsec') * 1000 as integer) - 86400000 + joined_order * 60000
 FROM demo_member;
 
--- 最終更新は何分前か。遠近の 4 つの段階 (1 時間以内、3 時間以内、12 時間以内、それより前) にばらける。
-INSERT INTO user_status (user_id, updated_at)
-WITH demo_member (id, updated_ago) AS (
+-- 最後に画面を開いていたのは何分前か。Yui と Sora は 3 時間より前なので、離れている扱いになる。
+INSERT INTO user_status (user_id, last_seen_at)
+WITH demo_member (id, seen_ago) AS (
   VALUES ('demo-hana', 10), ('demo-ren', 90), ('demo-yui', 300), ('demo-sora', 1080), ('demo-kai', 40)
 )
-SELECT id, cast(unixepoch('subsec') * 1000 as integer) - updated_ago * 60000
+SELECT id, cast(unixepoch('subsec') * 1000 as integer) - seen_ago * 60000
 FROM demo_member;
 
--- 忙しさは Hana 80%、Ren 45%、Yui 100%、Sora 20%、Kai 0%。落としたタスクは履歴に入る。
-INSERT INTO task (user_id, title, weight, state, created_at, dropped_at)
+-- 忙しさは Hana 80%、Ren 45%、Yui 100%、Sora 20%、Kai 0%。Ren と Kai はプールにもタスクを置いている。
+INSERT INTO task (user_id, title, weight, state, created_at, loaded_at)
 WITH demo_task (user_id, title, weight, state) AS (
   VALUES
     ('demo-hana', 'スライドの作成', 50, 'on'),
     ('demo-hana', 'デモ動画の撮影', 30, 'on'),
     ('demo-ren', 'API の実装', 45, 'on'),
-    ('demo-ren', 'README の更新', 20, 'dropped'),
+    ('demo-ren', 'README の更新', 20, 'pool'),
     ('demo-yui', 'デザインの修正', 60, 'on'),
     ('demo-yui', 'アイコンの作成', 40, 'on'),
     ('demo-sora', 'レビュー', 20, 'on'),
-    ('demo-kai', '環境構築', 30, 'dropped')
+    ('demo-kai', '環境構築', 30, 'pool')
 )
 SELECT t.user_id, t.title, t.weight, t.state,
-  s.updated_at - 30 * 60000,
-  CASE WHEN t.state = 'dropped' THEN s.updated_at END
+  s.last_seen_at - 60 * 60000,
+  CASE WHEN t.state = 'on' THEN s.last_seen_at - 30 * 60000 END
 FROM demo_task AS t
 JOIN user_status AS s ON s.user_id = t.user_id;

@@ -5,7 +5,7 @@
  * OpenAPI spec version: 0.0.0
  */
 
-export interface DroppedTask {
+export interface PoolTask {
   id: number;
   title: string;
   /**
@@ -14,5 +14,6 @@ export interface DroppedTask {
      * @maximum 100
      */
   weight: number;
-  droppedAt: string;
+  /** プールに作った日時 */
+  createdAt: string;
 }

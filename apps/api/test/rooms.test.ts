@@ -1,9 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { signInAsNewUser } from "./helpers/auth";
 import { request } from "./helpers/request";
 import { createRoom, joinRoom, leaveRoom } from "./helpers/room";
 
-type RoomBody = { members: { userId: string; name: string; isMe: boolean }[] };
+type RoomBody = { members: { userId: string; name: string; isMe: boolean; isAway: boolean }[] };
+
+const HOUR_MS = 60 * 60 * 1000;
+
+/** 時計を今から hours 時間ずらす。ずらした時計はテストの後で元に戻す。 */
+const shiftClock = (hours: number) => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(Date.now() + hours * HOUR_MS);
+};
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const getMembers = async (headers: Headers, roomId: string) => {
   const response = await request(`/api/rooms/${roomId}`, { headers });
@@ -169,16 +181,54 @@ describe("ルーム", () => {
     expect(members.map(({ name }) => name)).toEqual(["Alice", "Bob"]);
   });
 
-  it("ルームを移っただけでは最終更新は変わらない", async () => {
+  it("ルームの情報を取ると、自分は離れていない扱いになる", async () => {
     const { headers } = await signInAsNewUser();
-    await createRoom(headers);
-    const before = await request("/api/me/tasks", { headers });
-    const { statusUpdatedAt } = (await before.json()) as { statusUpdatedAt: string };
+    const roomId = await createRoom(headers);
+    shiftClock(4);
 
-    await createRoom(headers);
+    const members = await getMembers(headers, roomId);
 
-    const after = await request("/api/me/tasks", { headers });
-    expect(await after.json()).toMatchObject({ statusUpdatedAt });
+    expect(members).toMatchObject([{ isMe: true, isAway: false }]);
+  });
+
+  it("しきい値 (3 時間) より長く画面を開いていない人は、離れている扱いになる", async () => {
+    const alice = await signInAsNewUser({ name: "Alice" });
+    const bob = await signInAsNewUser({ name: "Bob" });
+    const roomId = await createRoom(alice.headers);
+    await joinRoom(bob.headers, roomId);
+    shiftClock(3);
+
+    const members = await getMembers(alice.headers, roomId);
+
+    expect(members.map(({ name, isAway }) => [name, isAway])).toEqual([
+      ["Alice", false],
+      ["Bob", true],
+    ]);
+  });
+
+  it("しきい値より短い間だけ開いていない人は、離れていない扱いになる", async () => {
+    const alice = await signInAsNewUser({ name: "Alice" });
+    const bob = await signInAsNewUser({ name: "Bob" });
+    const roomId = await createRoom(alice.headers);
+    await joinRoom(bob.headers, roomId);
+    shiftClock(2.9);
+
+    const members = await getMembers(alice.headers, roomId);
+
+    expect(members.find(({ name }) => name === "Bob")).toMatchObject({ isAway: false });
+  });
+
+  it("離れていた人がルームの情報を取ると、離れていない扱いに戻る", async () => {
+    const alice = await signInAsNewUser({ name: "Alice" });
+    const bob = await signInAsNewUser({ name: "Bob" });
+    const roomId = await createRoom(alice.headers);
+    await joinRoom(bob.headers, roomId);
+    shiftClock(4);
+
+    await getMembers(bob.headers, roomId);
+
+    const members = await getMembers(alice.headers, roomId);
+    expect(members.find(({ name }) => name === "Bob")).toMatchObject({ isAway: false });
   });
 
   it("メンバーでないルームの情報は見られない", async () => {

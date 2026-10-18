@@ -1,30 +1,22 @@
 import { motion } from "motion/react";
 import { useMemo } from "react";
-import type { BalloonDistance } from "@/lib/balloon-distance";
 import { createShakeDetector, DRAG_SHAKE } from "@/lib/shake-detector";
 
 /** 気球の上端からアイコンの中心までの距離。高さの目盛りにアイコンの中心を合わせるのに使う。 */
 export const BALLOON_ANCHOR_PX = 24;
 
-// TODO: 遠近の大きさと濃さはデザイナーと決める。今は仮の値。
-const DISTANCE_STYLES: Record<BalloonDistance, { scale: number; opacity: number }> = {
-  0: { scale: 1, opacity: 1 },
-  1: { scale: 0.85, opacity: 0.85 },
-  2: { scale: 0.7, opacity: 0.65 },
-  3: { scale: 0.55, opacity: 0.45 },
-};
-
 type BalloonProps = {
   name: string;
   image: string | null;
   color: string;
-  distance: BalloonDistance;
+  /** 離れている人の気球とアイコンはグレースケールにする。大きさと濃さは変えない。 */
+  isAway: boolean;
   onTap: () => void;
   /** 渡すと、気球をドラッグして強く揺らしたときに呼ばれる。自分の気球にだけ渡す。 */
   onShake?: () => void;
 };
 
-export function Balloon({ name, image, color, distance, onTap, onShake }: BalloonProps) {
+export function Balloon({ name, image, color, isAway, onTap, onShake }: BalloonProps) {
   const feed = useMemo(() => onShake && createShakeDetector(DRAG_SHAKE, onShake), [onShake]);
 
   return (
@@ -32,7 +24,7 @@ export function Balloon({ name, image, color, distance, onTap, onShake }: Balloo
       className="flex flex-col items-center"
       style={{ transformOrigin: `50% ${BALLOON_ANCHOR_PX}px` }}
       initial={false}
-      animate={DISTANCE_STYLES[distance]}
+      animate={{ filter: isAway ? "grayscale(1)" : "grayscale(0)" }}
     >
       <motion.div
         animate={{ y: [0, -6, 0] }}

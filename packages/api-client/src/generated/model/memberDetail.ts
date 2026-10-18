@@ -17,8 +17,8 @@ export interface MemberDetail {
      * @maximum 100
      */
   busy: number;
-  statusUpdatedAt: string;
-  serverTime: string;
-  /** 乗っているタスク。乗せた日時の新しい順 */
+  /** 最後に画面を開いてから、しきい値 (初期値 3 時間) より長くたっているか */
+  isAway: boolean;
+  /** 気球に乗っているタスク。乗せた日時の新しい順 */
   tasks: Task[];
 }
